@@ -1,0 +1,199 @@
+# Progress and Next Plan
+
+Date: 2026-07-07
+
+## Current Goal
+
+Rebuild the legacy `3121010212` Java SSM graduation project as a modern full-stack system:
+
+- Frontend: Next.js, React, TypeScript, Tailwind CSS
+- Backend: Go, Gin, pgx
+- Database: PostgreSQL, with future pgvector support
+- AI: later through Go API first, optional Python FastAPI service when RAG is needed
+
+## Current Repository State
+
+Project root:
+
+```text
+D:\daima\3121010212-next
+```
+
+Local services:
+
+- Frontend: `http://127.0.0.1:3000`
+- API: `http://127.0.0.1:8080`
+- PostgreSQL container: `pylab_pg`
+- Database: `mental_health`
+
+The old Java project and MySQL dump are kept locally as migration references, but they are intentionally ignored by Git because they contain legacy credentials, token dumps, generated frontend bundles, and large archival assets.
+
+## Completed
+
+### Project Skeleton
+
+- Created the new `3121010212-next` workspace.
+- Initialized a local Git repository.
+- Added Next.js frontend under `apps/web`.
+- Added Go Gin API under `services/api`.
+- Added database migrations and seeds under `database`.
+- Added architecture, API, local infrastructure, migration, and legacy-analysis docs.
+
+### Database
+
+- Created PostgreSQL database `mental_health`.
+- Added initial schema:
+  - `users`
+  - `counselors`
+  - `article_categories`
+  - `articles`
+  - `appointments`
+- Seeded demo users:
+  - `admin / 123456`
+  - `student-demo / 123456`
+  - `counselor-demo / 123456`
+- Seeded one demo counselor and one demo article.
+
+### Backend API
+
+Implemented:
+
+- `GET /healthz`
+- `GET /api/v1/meta`
+- `POST /api/v1/auth/register`
+- `POST /api/v1/auth/login`
+- `GET /api/v1/me`
+- `GET /api/v1/counselors`
+- `GET /api/v1/articles`
+- `GET /api/v1/articles/:id`
+- `POST /api/v1/articles`
+- `PUT /api/v1/articles/:id`
+- `DELETE /api/v1/articles/:id`
+- `GET /api/v1/appointments`
+- `POST /api/v1/appointments`
+- `PATCH /api/v1/appointments/:id/status`
+
+Implemented backend concerns:
+
+- JWT signing and parsing
+- bcrypt password hashing
+- role-based checks for article editing and appointment handling
+- CORS for local frontend development
+- soft archive for articles instead of physical delete
+
+### Frontend
+
+The current first screen is a working product surface, not a landing page.
+
+Implemented:
+
+- login with demo accounts
+- counselor list
+- appointment creation
+- appointment list
+- appointment status operations for admin/counselor
+- article list
+- article detail
+- article create/update/archive panel for admin/counselor
+- live API integration against the Go service
+
+### Validation
+
+Recent checks passed:
+
+```powershell
+go test ./...
+npm run build:web
+```
+
+Manual API validation completed:
+
+- student login
+- counselor login
+- appointment create
+- appointment approve
+- appointment complete
+- article create
+- article update
+- article archive
+- public article list still excludes archived validation data
+
+## Important Notes
+
+### GitHub Publish Blocker
+
+GitHub CLI is installed, but it is not authenticated yet:
+
+```text
+gh auth status
+You are not logged into any GitHub hosts.
+```
+
+Run this before publishing from another machine or this machine:
+
+```powershell
+gh auth login
+```
+
+After login, the repo can be created and pushed with:
+
+```powershell
+cd D:\daima\3121010212-next
+gh repo create 3121010212-next --private --source . --remote origin --push
+```
+
+Use `--public` instead of `--private` only if the project is meant to be public.
+
+### What Is Intentionally Not Committed
+
+Ignored from Git:
+
+- `legacy/`
+- `database/legacy-mysql/`
+- `.cache/`
+- `.env*`
+- generated frontend/backend artifacts
+
+Reason: old project files include plaintext DB credentials, token dumps, generated bundles, and large archival assets. Keep them local as migration references unless they are sanitized first.
+
+## Recommended Next Steps
+
+1. Authenticate GitHub CLI and push the repository.
+2. Create a clean `.env.local` on each development machine:
+
+```text
+NEXT_PUBLIC_API_URL=http://127.0.0.1:8080/api/v1
+```
+
+3. Add backend run scripts for Windows development.
+4. Add structured API packages or sqlc-generated query layer before the API grows much larger.
+5. Split the current single-page frontend into route groups:
+
+```text
+app/(public)
+app/(account)
+app/(admin)
+app/(auth)
+```
+
+6. Implement counselor profile management.
+7. Implement article category management.
+8. Implement file upload for avatars and article covers.
+9. Add forum/comment module after the first core flow is stable.
+10. Add AI features later:
+    - mental health Q&A
+    - assessment interpretation
+    - article summary
+    - content moderation
+
+## Tomorrow Startup Checklist
+
+On the company computer:
+
+1. Clone the GitHub repo.
+2. Install Node and Go dependencies.
+3. Start or connect PostgreSQL.
+4. Apply migrations and seeds.
+5. Start the API on `8080`.
+6. Start the web app on `3000`.
+7. Login with `student-demo`, `counselor-demo`, or `admin`.

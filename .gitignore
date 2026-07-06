@@ -1,0 +1,17 @@
+node_modules/
+.next/
+dist/
+coverage/
+
+*.exe
+*.test
+*.log
+
+.env
+.env.local
+.DS_Store
+.cache/
+
+database/postgres-data/
+database/legacy-mysql/
+legacy/
