@@ -10,6 +10,10 @@ Implemented skeleton:
 - `POST /api/v1/auth/login`
 - `GET /api/v1/me`
 - `GET /api/v1/counselors`
+- `GET /api/v1/article-categories`
+- `POST /api/v1/article-categories`
+- `PUT /api/v1/article-categories/{id}`
+- `DELETE /api/v1/article-categories/{id}`
 - `GET /api/v1/articles`
 - `GET /api/v1/articles/{id}`
 - `POST /api/v1/articles`
@@ -79,3 +83,47 @@ Allowed appointment statuses:
 - `completed`
 
 Only `admin` and `counselor` roles can update appointment status. Counselors can only update appointments assigned to their own counselor profile.
+
+## Article Categories
+
+List enabled categories:
+
+```text
+GET /api/v1/article-categories
+```
+
+Response:
+
+```json
+{
+  "categories": [
+    {
+      "id": "<uuid>",
+      "name": "心理科普",
+      "is_active": true
+    }
+  ]
+}
+```
+
+Create or re-enable a category. Requires `admin` or `counselor`:
+
+```json
+{
+  "name": "睡眠管理"
+}
+```
+
+Rename a category. Requires `admin` or `counselor`:
+
+```text
+PUT /api/v1/article-categories/{id}
+```
+
+Disable a category. Requires `admin` or `counselor`; records are soft-disabled with `is_active = false`:
+
+```text
+DELETE /api/v1/article-categories/{id}
+```
+
+Article create and update requests still accept the existing `category` string field for compatibility.

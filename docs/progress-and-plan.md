@@ -1,6 +1,6 @@
 # Progress and Next Plan
 
-Date: 2026-07-07
+Date: 2026-07-08
 
 ## Current Goal
 
@@ -64,6 +64,10 @@ Implemented:
 - `POST /api/v1/auth/login`
 - `GET /api/v1/me`
 - `GET /api/v1/counselors`
+- `GET /api/v1/article-categories`
+- `POST /api/v1/article-categories`
+- `PUT /api/v1/article-categories/:id`
+- `DELETE /api/v1/article-categories/:id`
 - `GET /api/v1/articles`
 - `GET /api/v1/articles/:id`
 - `POST /api/v1/articles`
@@ -80,6 +84,7 @@ Implemented backend concerns:
 - role-based checks for article editing and appointment handling
 - CORS for local frontend development
 - soft archive for articles instead of physical delete
+- managed article categories with soft disable
 
 ### Frontend
 
@@ -95,6 +100,7 @@ Implemented:
 - article list
 - article detail
 - article create/update/archive panel for admin/counselor
+- article category select and category management panel for admin/counselor
 - live API integration against the Go service
 
 ### Validation
@@ -104,6 +110,15 @@ Recent checks passed:
 ```powershell
 go test ./...
 npm run build:web
+```
+
+Latest validation on 2026-07-08 covered backend tests and frontend production build after article category management was added.
+
+Pending local environment action:
+
+```powershell
+# Apply when PostgreSQL is running.
+psql "postgres://root:123456@localhost:5432/mental_health?sslmode=disable" -f database/migrations/000002_article_categories.up.sql
 ```
 
 Manual API validation completed:
@@ -158,7 +173,7 @@ Reason: old project files include plaintext DB credentials, token dumps, generat
 
 ## Recommended Next Steps
 
-1. Authenticate GitHub CLI and push the repository.
+1. Apply pending database migrations on each development machine.
 2. Create a clean `.env.local` on each development machine:
 
 ```text
@@ -177,10 +192,9 @@ app/(auth)
 ```
 
 6. Implement counselor profile management.
-7. Implement article category management.
-8. Implement file upload for avatars and article covers.
-9. Add forum/comment module after the first core flow is stable.
-10. Add AI features later:
+7. Implement file upload for avatars and article covers.
+8. Add forum/comment module after the first core flow is stable.
+9. Add AI features later:
     - mental health Q&A
     - assessment interpretation
     - article summary

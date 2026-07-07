@@ -307,7 +307,7 @@ func upsertArticleCategory(ctx context.Context, tx articleTx, name string) (any,
 	err := tx.QueryRow(ctx, `
 		INSERT INTO article_categories (name)
 		VALUES ($1)
-		ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name
+		ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name, is_active = true, updated_at = now()
 		RETURNING id::text
 	`, name).Scan(&id)
 	if err != nil {

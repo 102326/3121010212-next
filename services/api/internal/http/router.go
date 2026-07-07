@@ -32,6 +32,7 @@ func NewRouter(deps Dependencies) http.Handler {
 	counselorHandler := NewCounselorHandler(deps.DB)
 	appointmentHandler := NewAppointmentHandler(deps.DB)
 	articleHandler := NewArticleHandler(deps.DB)
+	articleCategoryHandler := NewArticleCategoryHandler(deps.DB)
 
 	v1.GET("/meta", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
@@ -40,6 +41,7 @@ func NewRouter(deps Dependencies) http.Handler {
 			"modules": []string{
 				"auth",
 				"articles",
+				"article-categories",
 				"counselors",
 				"appointments",
 			},
@@ -49,6 +51,10 @@ func NewRouter(deps Dependencies) http.Handler {
 	v1.POST("/auth/login", authHandler.Login)
 	v1.GET("/me", RequireAuth(deps.Config.JWTSecret), authHandler.Me)
 	v1.GET("/counselors", counselorHandler.List)
+	v1.GET("/article-categories", articleCategoryHandler.List)
+	v1.POST("/article-categories", RequireAuth(deps.Config.JWTSecret), RequireAnyRole("admin", "counselor"), articleCategoryHandler.Create)
+	v1.PUT("/article-categories/:id", RequireAuth(deps.Config.JWTSecret), RequireAnyRole("admin", "counselor"), articleCategoryHandler.Update)
+	v1.DELETE("/article-categories/:id", RequireAuth(deps.Config.JWTSecret), RequireAnyRole("admin", "counselor"), articleCategoryHandler.Disable)
 	v1.GET("/articles", articleHandler.List)
 	v1.GET("/articles/:id", articleHandler.Detail)
 	v1.POST("/articles", RequireAuth(deps.Config.JWTSecret), RequireAnyRole("admin", "counselor"), articleHandler.Create)

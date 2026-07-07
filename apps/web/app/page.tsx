@@ -8,8 +8,11 @@ import {
   Clock3,
   LibraryBig,
   LogIn,
+  Pencil,
+  Plus,
   RefreshCw,
   Send,
+  Trash2,
   UserRoundCheck
 } from "lucide-react";
 
@@ -57,12 +60,19 @@ type Article = {
   published_at?: string;
 };
 
+type ArticleCategory = {
+  id: string;
+  name: string;
+  is_active: boolean;
+};
+
 type ApiState = {
   token: string;
   user: User | null;
   counselors: Counselor[];
   appointments: Appointment[];
   articles: Article[];
+  categories: ArticleCategory[];
   selectedArticle: Article | null;
 };
 
@@ -80,6 +90,7 @@ export default function Home() {
     counselors: [],
     appointments: [],
     articles: [],
+    categories: [],
     selectedArticle: null
   });
   const [username, setUsername] = useState("student-demo");
@@ -89,6 +100,8 @@ export default function Home() {
   const [content, setContent] = useState("最近睡眠不好，想预约咨询。");
   const [editingArticleId, setEditingArticleId] = useState("");
   const [articleCategory, setArticleCategory] = useState("心理科普");
+  const [categoryName, setCategoryName] = useState("心理科普");
+  const [editingCategoryId, setEditingCategoryId] = useState("");
   const [articleTitle, setArticleTitle] = useState("");
   const [articleSummary, setArticleSummary] = useState("");
   const [articleContent, setArticleContent] = useState("");
@@ -109,6 +122,7 @@ export default function Home() {
 
   useEffect(() => {
     void loadCounselors();
+    void loadCategories();
     void loadArticles();
   }, []);
 
@@ -165,6 +179,26 @@ export default function Home() {
     }
   }
 
+  async function loadCategories() {
+    setLoading(true);
+    setMessage("");
+    try {
+      const data = await apiFetch<{ categories: ArticleCategory[] }>("/article-categories");
+      setState((current) => ({
+        ...current,
+        categories: data.categories
+      }));
+      if (data.categories[0]) {
+        setArticleCategory((current) => current || data.categories[0].name);
+        setCategoryName((current) => current || data.categories[0].name);
+      }
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "加载文章分类失败");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function loadArticle(id: string) {
     setLoading(true);
     setMessage("");
@@ -177,6 +211,7 @@ export default function Home() {
       }));
       setEditingArticleId(data.article.id);
       setArticleCategory(data.article.category ?? "心理科普");
+      setCategoryName(data.article.category ?? "心理科普");
       setArticleTitle(data.article.title);
       setArticleSummary(data.article.summary ?? "");
       setArticleContent(data.article.content ?? "");
@@ -292,6 +327,57 @@ export default function Home() {
       setMessage(editingArticleId ? "文章已更新" : "文章已创建");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "保存文章失败");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function saveCategory() {
+    if (!state.token || !canEditArticles) {
+      setMessage("需要管理员或咨询师账号");
+      return;
+    }
+    setLoading(true);
+    setMessage("");
+    try {
+      const path = editingCategoryId ? `/article-categories/${editingCategoryId}` : "/article-categories";
+      const method = editingCategoryId ? "PUT" : "POST";
+      const data = await apiFetch<{ category: ArticleCategory }>(path, {
+        method,
+        body: JSON.stringify({ name: categoryName })
+      });
+      await loadCategories();
+      setArticleCategory(data.category.name);
+      setCategoryName(data.category.name);
+      setEditingCategoryId("");
+      setMessage(editingCategoryId ? "分类已更新" : "分类已创建");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "保存分类失败");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function disableCategory(id: string, name: string) {
+    if (!state.token || !canEditArticles) {
+      setMessage("需要管理员或咨询师账号");
+      return;
+    }
+    setLoading(true);
+    setMessage("");
+    try {
+      await apiFetch(`/article-categories/${id}`, { method: "DELETE" });
+      await loadCategories();
+      if (articleCategory === name) {
+        setArticleCategory("");
+      }
+      if (editingCategoryId === id) {
+        setEditingCategoryId("");
+        setCategoryName("");
+      }
+      setMessage("分类已停用");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "停用分类失败");
     } finally {
       setLoading(false);
     }
@@ -418,17 +504,99 @@ export default function Home() {
           {canEditArticles ? (
             <div className="rounded-lg border border-border bg-white p-4 shadow-sm">
               <div className="mb-4 flex items-center justify-between">
+                <h2 className="font-semibold">分类管理</h2>
+                <Plus className="size-4 text-primary" />
+              </div>
+              <div className="space-y-3">
+                <label className="block text-sm">
+                  <span className="mb-1 block text-muted-foreground">分类名称</span>
+                  <input
+                    className="h-10 w-full rounded-md border border-border px-3 outline-none focus:ring-2 focus:ring-primary"
+                    value={categoryName}
+                    onChange={(event) => setCategoryName(event.target.value)}
+                  />
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button className="gap-2" disabled={loading || !categoryName.trim()} onClick={saveCategory}>
+                    <Plus className="size-4" />
+                    {editingCategoryId ? "保存分类" : "新增分类"}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    disabled={loading}
+                    onClick={() => {
+                      setEditingCategoryId("");
+                      setCategoryName("");
+                    }}
+                  >
+                    清空
+                  </Button>
+                </div>
+                <div className="space-y-2">
+                  {state.categories.length === 0 ? (
+                    <p className="rounded-md border border-dashed border-border p-3 text-sm text-muted-foreground">暂无分类</p>
+                  ) : (
+                    state.categories.map((item) => (
+                      <div key={item.id} className="flex items-center justify-between gap-2 rounded-md border border-border px-3 py-2">
+                        <button
+                          className="min-w-0 flex-1 truncate text-left text-sm"
+                          onClick={() => {
+                            setEditingCategoryId(item.id);
+                            setCategoryName(item.name);
+                          }}
+                        >
+                          {item.name}
+                        </button>
+                        <Button
+                          className="size-8 p-0"
+                          variant="ghost"
+                          disabled={loading}
+                          onClick={() => {
+                            setEditingCategoryId(item.id);
+                            setCategoryName(item.name);
+                          }}
+                          aria-label={`编辑分类 ${item.name}`}
+                        >
+                          <Pencil className="size-4" />
+                        </Button>
+                        <Button
+                          className="size-8 p-0"
+                          variant="ghost"
+                          disabled={loading}
+                          onClick={() => void disableCategory(item.id, item.name)}
+                          aria-label={`停用分类 ${item.name}`}
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {canEditArticles ? (
+            <div className="rounded-lg border border-border bg-white p-4 shadow-sm">
+              <div className="mb-4 flex items-center justify-between">
                 <h2 className="font-semibold">文章编辑</h2>
                 <LibraryBig className="size-4 text-primary" />
               </div>
               <div className="space-y-3">
                 <label className="block text-sm">
                   <span className="mb-1 block text-muted-foreground">分类</span>
-                  <input
+                  <select
                     className="h-10 w-full rounded-md border border-border px-3 outline-none focus:ring-2 focus:ring-primary"
                     value={articleCategory}
                     onChange={(event) => setArticleCategory(event.target.value)}
-                  />
+                  >
+                    {state.categories.length === 0 ? <option value="">暂无分类</option> : null}
+                    {state.categories.map((item) => (
+                      <option key={item.id} value={item.name}>
+                        {item.name}
+                      </option>
+                    ))}
+                  </select>
                 </label>
                 <label className="block text-sm">
                   <span className="mb-1 block text-muted-foreground">标题</span>
@@ -468,6 +636,7 @@ export default function Home() {
                   variant="ghost"
                   onClick={() => {
                     setEditingArticleId("");
+                    setArticleCategory(state.categories[0]?.name ?? "");
                     setArticleTitle("");
                     setArticleSummary("");
                     setArticleContent("");
@@ -493,6 +662,7 @@ export default function Home() {
                 disabled={loading}
                 onClick={() => {
                   void loadCounselors();
+                  void loadCategories();
                   void loadArticles();
                 }}
               >
