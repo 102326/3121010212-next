@@ -64,6 +64,7 @@ Implemented:
 - `POST /api/v1/auth/login`
 - `GET /api/v1/me`
 - `GET /api/v1/counselors`
+- `PUT /api/v1/counselors/:id`
 - `GET /api/v1/article-categories`
 - `POST /api/v1/article-categories`
 - `PUT /api/v1/article-categories/:id`
@@ -82,6 +83,7 @@ Implemented backend concerns:
 - JWT signing and parsing
 - bcrypt password hashing
 - role-based checks for article editing and appointment handling
+- counselor profile editing with admin/owner checks
 - CORS for local frontend development
 - soft archive for articles instead of physical delete
 - managed article categories with soft disable
@@ -94,6 +96,7 @@ Implemented:
 
 - login with demo accounts
 - counselor list
+- counselor profile edit panel for admin/counselor
 - appointment creation
 - appointment list
 - appointment status operations for admin/counselor
@@ -112,7 +115,7 @@ go test ./...
 npm run build:web
 ```
 
-Latest validation on 2026-07-08 covered backend tests and frontend production build after article category management was added.
+Latest validation on 2026-07-09 covered backend tests and frontend production build after counselor profile management was added.
 
 Pending local environment action:
 
@@ -191,10 +194,9 @@ app/(admin)
 app/(auth)
 ```
 
-6. Implement counselor profile management.
-7. Implement file upload for avatars and article covers.
-8. Add forum/comment module after the first core flow is stable.
-9. Add AI features later:
+6. Implement file upload for avatars and article covers.
+7. Add forum/comment module after the first core flow is stable.
+8. Add AI features later:
     - mental health Q&A
     - assessment interpretation
     - article summary

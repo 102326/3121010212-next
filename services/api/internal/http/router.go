@@ -51,6 +51,7 @@ func NewRouter(deps Dependencies) http.Handler {
 	v1.POST("/auth/login", authHandler.Login)
 	v1.GET("/me", RequireAuth(deps.Config.JWTSecret), authHandler.Me)
 	v1.GET("/counselors", counselorHandler.List)
+	v1.PUT("/counselors/:id", RequireAuth(deps.Config.JWTSecret), RequireAnyRole("admin", "counselor"), counselorHandler.Update)
 	v1.GET("/article-categories", articleCategoryHandler.List)
 	v1.POST("/article-categories", RequireAuth(deps.Config.JWTSecret), RequireAnyRole("admin", "counselor"), articleCategoryHandler.Create)
 	v1.PUT("/article-categories/:id", RequireAuth(deps.Config.JWTSecret), RequireAnyRole("admin", "counselor"), articleCategoryHandler.Update)

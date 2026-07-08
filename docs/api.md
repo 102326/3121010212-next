@@ -10,6 +10,7 @@ Implemented skeleton:
 - `POST /api/v1/auth/login`
 - `GET /api/v1/me`
 - `GET /api/v1/counselors`
+- `PUT /api/v1/counselors/{id}`
 - `GET /api/v1/article-categories`
 - `POST /api/v1/article-categories`
 - `PUT /api/v1/article-categories/{id}`
@@ -83,6 +84,36 @@ Allowed appointment statuses:
 - `completed`
 
 Only `admin` and `counselor` roles can update appointment status. Counselors can only update appointments assigned to their own counselor profile.
+
+## Counselors
+
+List published counselors:
+
+```text
+GET /api/v1/counselors
+```
+
+Update a counselor profile. Requires `admin` or `counselor`. Admin can update any counselor; counselors can update only their own linked profile:
+
+```text
+PUT /api/v1/counselors/{id}
+```
+
+Request:
+
+```json
+{
+  "name": "演示咨询师",
+  "gender": "女",
+  "avatar_url": "",
+  "specialty": "情绪管理、校园适应",
+  "available_time": "周一至周五 14:00-18:00",
+  "phone": "13800000002",
+  "bio": "专注学生心理支持与压力管理。"
+}
+```
+
+`name` and `specialty` are required. Optional fields are stored as empty values in responses when unset.
 
 ## Article Categories
 

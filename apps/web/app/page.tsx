@@ -32,6 +32,7 @@ type Counselor = {
   id: string;
   name: string;
   gender?: string;
+  avatar_url?: string;
   specialty: string;
   available_time?: string;
   phone?: string;
@@ -98,6 +99,13 @@ export default function Home() {
   const [selectedCounselor, setSelectedCounselor] = useState("");
   const [scheduledAt, setScheduledAt] = useState("2026-07-05T14:00");
   const [content, setContent] = useState("最近睡眠不好，想预约咨询。");
+  const [counselorName, setCounselorName] = useState("");
+  const [counselorGender, setCounselorGender] = useState("");
+  const [counselorSpecialty, setCounselorSpecialty] = useState("");
+  const [counselorAvailableTime, setCounselorAvailableTime] = useState("");
+  const [counselorPhone, setCounselorPhone] = useState("");
+  const [counselorBio, setCounselorBio] = useState("");
+  const [counselorAvatarURL, setCounselorAvatarURL] = useState("");
   const [editingArticleId, setEditingArticleId] = useState("");
   const [articleCategory, setArticleCategory] = useState("心理科普");
   const [categoryName, setCategoryName] = useState("心理科普");
@@ -109,6 +117,12 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const canEditArticles = state.user?.role === "admin" || state.user?.role === "counselor";
   const canManageAppointments = state.user?.role === "admin" || state.user?.role === "counselor";
+  const canManageCounselors = state.user?.role === "admin" || state.user?.role === "counselor";
+
+  const activeCounselor = useMemo(
+    () => state.counselors.find((item) => item.id === selectedCounselor) ?? null,
+    [selectedCounselor, state.counselors]
+  );
 
   const stats = useMemo(
     () => [
@@ -125,6 +139,19 @@ export default function Home() {
     void loadCategories();
     void loadArticles();
   }, []);
+
+  useEffect(() => {
+    if (!activeCounselor) {
+      return;
+    }
+    setCounselorName(activeCounselor.name);
+    setCounselorGender(activeCounselor.gender ?? "");
+    setCounselorSpecialty(activeCounselor.specialty);
+    setCounselorAvailableTime(activeCounselor.available_time ?? "");
+    setCounselorPhone(activeCounselor.phone ?? "");
+    setCounselorBio(activeCounselor.bio ?? "");
+    setCounselorAvatarURL(activeCounselor.avatar_url ?? "");
+  }, [activeCounselor]);
 
   async function apiFetch<T>(path: string, init: RequestInit = {}, token = state.token): Promise<T> {
     const headers = new Headers(init.headers);
@@ -297,6 +324,36 @@ export default function Home() {
       setMessage(`预约状态已更新为：${statusText[status] ?? status}`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "更新预约状态失败");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function saveCounselorProfile() {
+    if (!state.token || !canManageCounselors || !selectedCounselor) {
+      setMessage("需要管理员或咨询师账号，并选择咨询师");
+      return;
+    }
+    setLoading(true);
+    setMessage("");
+    try {
+      const data = await apiFetch<{ counselor: Counselor }>(`/counselors/${selectedCounselor}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          name: counselorName,
+          gender: counselorGender,
+          avatar_url: counselorAvatarURL,
+          specialty: counselorSpecialty,
+          available_time: counselorAvailableTime,
+          phone: counselorPhone,
+          bio: counselorBio
+        })
+      });
+      await loadCounselors();
+      setSelectedCounselor(data.counselor.id);
+      setMessage("咨询师资料已更新");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "保存咨询师资料失败");
     } finally {
       setLoading(false);
     }
@@ -500,6 +557,97 @@ export default function Home() {
               </Button>
             </div>
           </div>
+
+          {canManageCounselors ? (
+            <div className="rounded-lg border border-border bg-white p-4 shadow-sm">
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="font-semibold">咨询师资料</h2>
+                <UserRoundCheck className="size-4 text-primary" />
+              </div>
+              <div className="space-y-3">
+                <label className="block text-sm">
+                  <span className="mb-1 block text-muted-foreground">当前咨询师</span>
+                  <select
+                    className="h-10 w-full rounded-md border border-border px-3 outline-none focus:ring-2 focus:ring-primary"
+                    value={selectedCounselor}
+                    onChange={(event) => setSelectedCounselor(event.target.value)}
+                  >
+                    {state.counselors.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block text-sm">
+                  <span className="mb-1 block text-muted-foreground">姓名</span>
+                  <input
+                    className="h-10 w-full rounded-md border border-border px-3 outline-none focus:ring-2 focus:ring-primary"
+                    value={counselorName}
+                    onChange={(event) => setCounselorName(event.target.value)}
+                  />
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="block text-sm">
+                    <span className="mb-1 block text-muted-foreground">性别</span>
+                    <input
+                      className="h-10 w-full rounded-md border border-border px-3 outline-none focus:ring-2 focus:ring-primary"
+                      value={counselorGender}
+                      onChange={(event) => setCounselorGender(event.target.value)}
+                    />
+                  </label>
+                  <label className="block text-sm">
+                    <span className="mb-1 block text-muted-foreground">电话</span>
+                    <input
+                      className="h-10 w-full rounded-md border border-border px-3 outline-none focus:ring-2 focus:ring-primary"
+                      value={counselorPhone}
+                      onChange={(event) => setCounselorPhone(event.target.value)}
+                    />
+                  </label>
+                </div>
+                <label className="block text-sm">
+                  <span className="mb-1 block text-muted-foreground">专长</span>
+                  <input
+                    className="h-10 w-full rounded-md border border-border px-3 outline-none focus:ring-2 focus:ring-primary"
+                    value={counselorSpecialty}
+                    onChange={(event) => setCounselorSpecialty(event.target.value)}
+                  />
+                </label>
+                <label className="block text-sm">
+                  <span className="mb-1 block text-muted-foreground">可预约时间</span>
+                  <input
+                    className="h-10 w-full rounded-md border border-border px-3 outline-none focus:ring-2 focus:ring-primary"
+                    value={counselorAvailableTime}
+                    onChange={(event) => setCounselorAvailableTime(event.target.value)}
+                  />
+                </label>
+                <label className="block text-sm">
+                  <span className="mb-1 block text-muted-foreground">头像 URL</span>
+                  <input
+                    className="h-10 w-full rounded-md border border-border px-3 outline-none focus:ring-2 focus:ring-primary"
+                    value={counselorAvatarURL}
+                    onChange={(event) => setCounselorAvatarURL(event.target.value)}
+                  />
+                </label>
+                <label className="block text-sm">
+                  <span className="mb-1 block text-muted-foreground">简介</span>
+                  <textarea
+                    className="min-h-24 w-full rounded-md border border-border px-3 py-2 outline-none focus:ring-2 focus:ring-primary"
+                    value={counselorBio}
+                    onChange={(event) => setCounselorBio(event.target.value)}
+                  />
+                </label>
+                <Button
+                  className="w-full gap-2"
+                  disabled={loading || !selectedCounselor || !counselorName.trim() || !counselorSpecialty.trim()}
+                  onClick={saveCounselorProfile}
+                >
+                  <Send className="size-4" />
+                  保存资料
+                </Button>
+              </div>
+            </div>
+          ) : null}
 
           {canEditArticles ? (
             <div className="rounded-lg border border-border bg-white p-4 shadow-sm">
