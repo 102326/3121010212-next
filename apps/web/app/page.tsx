@@ -9,6 +9,7 @@ import {
   ImagePlus,
   LibraryBig,
   LogIn,
+  MessageSquareText,
   Pencil,
   Plus,
   RefreshCw,
@@ -69,6 +70,26 @@ type ArticleCategory = {
   is_active: boolean;
 };
 
+type ForumComment = {
+  id: string;
+  post_id: string;
+  author_id?: string;
+  author?: string;
+  content: string;
+  created_at: string;
+};
+
+type ForumPost = {
+  id: string;
+  author_id?: string;
+  author?: string;
+  title: string;
+  content?: string;
+  comment_count: number;
+  created_at: string;
+  comments?: ForumComment[];
+};
+
 type ApiState = {
   token: string;
   user: User | null;
@@ -76,6 +97,8 @@ type ApiState = {
   appointments: Appointment[];
   articles: Article[];
   categories: ArticleCategory[];
+  forumPosts: ForumPost[];
+  selectedForumPost: ForumPost | null;
   selectedArticle: Article | null;
 };
 
@@ -94,6 +117,8 @@ export default function Home() {
     appointments: [],
     articles: [],
     categories: [],
+    forumPosts: [],
+    selectedForumPost: null,
     selectedArticle: null
   });
   const [username, setUsername] = useState("student-demo");
@@ -116,6 +141,9 @@ export default function Home() {
   const [articleSummary, setArticleSummary] = useState("");
   const [articleContent, setArticleContent] = useState("");
   const [articleCoverURL, setArticleCoverURL] = useState("");
+  const [forumTitle, setForumTitle] = useState("");
+  const [forumContent, setForumContent] = useState("");
+  const [forumComment, setForumComment] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const canEditArticles = state.user?.role === "admin" || state.user?.role === "counselor";
@@ -132,15 +160,17 @@ export default function Home() {
       { name: "咨询师", value: String(state.counselors.length), icon: UserRoundCheck },
       { name: "我的预约", value: String(state.appointments.length), icon: CalendarCheck },
       { name: "健康知识", value: String(state.articles.length), icon: LibraryBig },
+      { name: "社区帖子", value: String(state.forumPosts.length), icon: MessageSquareText },
       { name: "待确认", value: String(state.appointments.filter((item) => item.status === "pending").length), icon: Clock3 }
     ],
-    [state.appointments, state.articles.length, state.counselors.length]
+    [state.appointments, state.articles.length, state.counselors.length, state.forumPosts.length]
   );
 
   useEffect(() => {
     void loadCounselors();
     void loadCategories();
     void loadArticles();
+    void loadForumPosts();
   }, []);
 
   useEffect(() => {
@@ -245,6 +275,44 @@ export default function Home() {
       }
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "加载文章分类失败");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function loadForumPosts() {
+    setLoading(true);
+    setMessage("");
+    try {
+      const data = await apiFetch<{ posts: ForumPost[] }>("/forum-posts");
+      setState((current) => ({
+        ...current,
+        forumPosts: data.posts
+      }));
+      if (data.posts[0]) {
+        void loadForumPost(data.posts[0].id);
+      }
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "加载社区帖子失败");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function loadForumPost(id: string) {
+    setLoading(true);
+    setMessage("");
+    try {
+      const data = await apiFetch<{ post: ForumPost }>(`/forum-posts/${id}`);
+      setState((current) => ({
+        ...current,
+        selectedForumPost: data.post,
+        forumPosts: current.forumPosts.map((item) =>
+          item.id === data.post.id ? { ...item, comment_count: data.post.comment_count } : item
+        )
+      }));
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "加载帖子详情失败");
     } finally {
       setLoading(false);
     }
@@ -444,6 +512,89 @@ export default function Home() {
       setMessage("封面已上传，保存文章后生效");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "上传封面失败");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function createForumPost() {
+    if (!state.token) {
+      setMessage("请先登录");
+      return;
+    }
+    setLoading(true);
+    setMessage("");
+    try {
+      const data = await apiFetch<{ post: ForumPost }>("/forum-posts", {
+        method: "POST",
+        body: JSON.stringify({ title: forumTitle, content: forumContent })
+      });
+      setForumTitle("");
+      setForumContent("");
+      await loadForumPosts();
+      await loadForumPost(data.post.id);
+      setMessage("帖子已发布");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "发布帖子失败");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function archiveForumPost(id: string) {
+    if (!state.token) {
+      setMessage("请先登录");
+      return;
+    }
+    setLoading(true);
+    setMessage("");
+    try {
+      await apiFetch(`/forum-posts/${id}`, { method: "DELETE" });
+      setState((current) => ({ ...current, selectedForumPost: null }));
+      await loadForumPosts();
+      setMessage("帖子已删除");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "删除帖子失败");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function createForumComment() {
+    if (!state.token || !state.selectedForumPost) {
+      setMessage("请先登录并选择帖子");
+      return;
+    }
+    setLoading(true);
+    setMessage("");
+    try {
+      await apiFetch(`/forum-posts/${state.selectedForumPost.id}/comments`, {
+        method: "POST",
+        body: JSON.stringify({ content: forumComment })
+      });
+      setForumComment("");
+      await loadForumPost(state.selectedForumPost.id);
+      setMessage("评论已发布");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "发布评论失败");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function archiveForumComment(id: string) {
+    if (!state.token || !state.selectedForumPost) {
+      setMessage("请先登录并选择帖子");
+      return;
+    }
+    setLoading(true);
+    setMessage("");
+    try {
+      await apiFetch(`/forum-comments/${id}`, { method: "DELETE" });
+      await loadForumPost(state.selectedForumPost.id);
+      setMessage("评论已删除");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "删除评论失败");
     } finally {
       setLoading(false);
     }
@@ -902,13 +1053,14 @@ export default function Home() {
                   void loadCounselors();
                   void loadCategories();
                   void loadArticles();
+                  void loadForumPosts();
                 }}
               >
                 <RefreshCw className="size-4" />
                 刷新
               </Button>
             </div>
-            <div className="grid gap-3 sm:grid-cols-4">
+            <div className="grid gap-3 sm:grid-cols-5">
               {stats.map((item) => (
                 <div key={item.name} className="rounded-md border border-border p-4">
                   <item.icon className="mb-4 size-5 text-primary" />
@@ -1026,6 +1178,120 @@ export default function Home() {
                   ))
                 )}
               </div>
+            </div>
+
+            <div className="rounded-lg border border-border bg-white p-5 shadow-sm">
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="font-semibold">交流社区</h2>
+                <MessageSquareText className="size-4 text-primary" />
+              </div>
+              <div className="space-y-3">
+                {state.token ? (
+                  <div className="rounded-md border border-border p-3">
+                    <label className="block text-sm">
+                      <span className="mb-1 block text-muted-foreground">标题</span>
+                      <input
+                        className="h-10 w-full rounded-md border border-border px-3 outline-none focus:ring-2 focus:ring-primary"
+                        value={forumTitle}
+                        onChange={(event) => setForumTitle(event.target.value)}
+                      />
+                    </label>
+                    <label className="mt-3 block text-sm">
+                      <span className="mb-1 block text-muted-foreground">内容</span>
+                      <textarea
+                        className="min-h-20 w-full rounded-md border border-border px-3 py-2 outline-none focus:ring-2 focus:ring-primary"
+                        value={forumContent}
+                        onChange={(event) => setForumContent(event.target.value)}
+                      />
+                    </label>
+                    <Button
+                      className="mt-3 w-full gap-2"
+                      disabled={loading || !forumTitle.trim() || !forumContent.trim()}
+                      onClick={createForumPost}
+                    >
+                      <Send className="size-4" />
+                      发布帖子
+                    </Button>
+                  </div>
+                ) : null}
+                {state.forumPosts.length === 0 ? (
+                  <p className="rounded-md border border-dashed border-border p-4 text-sm text-muted-foreground">暂无社区帖子</p>
+                ) : (
+                  state.forumPosts.map((item) => (
+                    <div key={item.id} className="rounded-md border border-border p-4">
+                      <button className="w-full text-left" onClick={() => void loadForumPost(item.id)}>
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="min-w-0">
+                            <p className="truncate font-medium">{item.title}</p>
+                            <p className="mt-1 text-sm text-muted-foreground">{item.author || "匿名用户"}</p>
+                          </div>
+                          <span className="rounded-md bg-muted px-2 py-1 text-sm text-primary">{item.comment_count}</span>
+                        </div>
+                        <p className="mt-3 line-clamp-3 text-sm leading-6 text-muted-foreground">{item.content}</p>
+                      </button>
+                      {state.user && (state.user.role === "admin" || state.user.id === item.author_id) ? (
+                        <Button className="mt-3 w-full gap-2" variant="outline" disabled={loading} onClick={() => void archiveForumPost(item.id)}>
+                          <Trash2 className="size-4" />
+                          删除帖子
+                        </Button>
+                      ) : null}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-border bg-white p-5 shadow-sm">
+              <h2 className="mb-4 font-semibold">帖子详情</h2>
+              {state.selectedForumPost ? (
+                <div>
+                  <div className="mb-3 flex flex-wrap gap-2 text-sm text-muted-foreground">
+                    <span>{state.selectedForumPost.author || "匿名用户"}</span>
+                    <span>{new Date(state.selectedForumPost.created_at).toLocaleString()}</span>
+                    <span>{state.selectedForumPost.comment_count} 条评论</span>
+                  </div>
+                  <h3 className="text-lg font-semibold">{state.selectedForumPost.title}</h3>
+                  <p className="mt-4 whitespace-pre-wrap text-sm leading-7">{state.selectedForumPost.content}</p>
+                  <div className="mt-5 space-y-3">
+                    <h4 className="font-medium">评论</h4>
+                    {(state.selectedForumPost.comments ?? []).length === 0 ? (
+                      <p className="rounded-md border border-dashed border-border p-3 text-sm text-muted-foreground">暂无评论</p>
+                    ) : (
+                      (state.selectedForumPost.comments ?? []).map((item) => (
+                        <div key={item.id} className="rounded-md border border-border p-3">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="text-sm font-medium">{item.author || "匿名用户"}</p>
+                              <p className="mt-1 text-xs text-muted-foreground">{new Date(item.created_at).toLocaleString()}</p>
+                            </div>
+                            {state.user && (state.user.role === "admin" || state.user.id === item.author_id) ? (
+                              <Button className="size-8 p-0" variant="ghost" disabled={loading} onClick={() => void archiveForumComment(item.id)}>
+                                <Trash2 className="size-4" />
+                              </Button>
+                            ) : null}
+                          </div>
+                          <p className="mt-3 whitespace-pre-wrap text-sm leading-6">{item.content}</p>
+                        </div>
+                      ))
+                    )}
+                    {state.token ? (
+                      <div className="rounded-md border border-border p-3">
+                        <textarea
+                          className="min-h-20 w-full rounded-md border border-border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary"
+                          value={forumComment}
+                          onChange={(event) => setForumComment(event.target.value)}
+                        />
+                        <Button className="mt-3 w-full gap-2" disabled={loading || !forumComment.trim()} onClick={createForumComment}>
+                          <Send className="size-4" />
+                          发表评论
+                        </Button>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              ) : (
+                <p className="rounded-md border border-dashed border-border p-4 text-sm text-muted-foreground">选择一个帖子查看详情</p>
+              )}
             </div>
 
             <div className="rounded-lg border border-border bg-white p-5 shadow-sm">

@@ -21,6 +21,12 @@ Implemented skeleton:
 - `POST /api/v1/articles`
 - `PUT /api/v1/articles/{id}`
 - `DELETE /api/v1/articles/{id}`
+- `GET /api/v1/forum-posts`
+- `GET /api/v1/forum-posts/{id}`
+- `POST /api/v1/forum-posts`
+- `DELETE /api/v1/forum-posts/{id}`
+- `POST /api/v1/forum-posts/{id}/comments`
+- `DELETE /api/v1/forum-comments/{id}`
 - `GET /api/v1/appointments`
 - `POST /api/v1/appointments`
 - `PATCH /api/v1/appointments/{id}/status`
@@ -151,6 +157,49 @@ Response:
 ```
 
 The returned URL can be saved into `counselors.avatar_url` or `articles.cover_url`.
+
+## Forum
+
+List published posts:
+
+```text
+GET /api/v1/forum-posts
+```
+
+Load a post with comments:
+
+```text
+GET /api/v1/forum-posts/{id}
+```
+
+Create a post. Requires login:
+
+```json
+{
+  "title": "最近如何缓解压力？",
+  "content": "想听听大家的办法。"
+}
+```
+
+Archive a post. Requires login; only the author or admin can archive it:
+
+```text
+DELETE /api/v1/forum-posts/{id}
+```
+
+Create a comment. Requires login:
+
+```json
+{
+  "content": "我会先规律睡眠。"
+}
+```
+
+Archive a comment. Requires login; only the author or admin can archive it:
+
+```text
+DELETE /api/v1/forum-comments/{id}
+```
 
 ## Article Categories
 

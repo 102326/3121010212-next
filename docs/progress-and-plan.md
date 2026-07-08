@@ -48,6 +48,8 @@ The old Java project and MySQL dump are kept locally as migration references, bu
   - `article_categories`
   - `articles`
   - `appointments`
+  - `forum_posts`
+  - `forum_comments`
 - Seeded demo users:
   - `admin / 123456`
   - `student-demo / 123456`
@@ -75,6 +77,12 @@ Implemented:
 - `POST /api/v1/articles`
 - `PUT /api/v1/articles/:id`
 - `DELETE /api/v1/articles/:id`
+- `GET /api/v1/forum-posts`
+- `GET /api/v1/forum-posts/:id`
+- `POST /api/v1/forum-posts`
+- `DELETE /api/v1/forum-posts/:id`
+- `POST /api/v1/forum-posts/:id/comments`
+- `DELETE /api/v1/forum-comments/:id`
 - `GET /api/v1/appointments`
 - `POST /api/v1/appointments`
 - `PATCH /api/v1/appointments/:id/status`
@@ -89,6 +97,7 @@ Implemented backend concerns:
 - soft archive for articles instead of physical delete
 - managed article categories with soft disable
 - authenticated local image uploads for avatars and article covers
+- forum posts and comments with author/admin soft archive
 
 ### Frontend
 
@@ -108,6 +117,7 @@ Implemented:
 - article create/update/archive panel for admin/counselor
 - article cover upload and display
 - article category select and category management panel for admin/counselor
+- forum post list, post detail, comment list, post creation, and comment creation
 - live API integration against the Go service
 
 ### Validation
@@ -119,13 +129,14 @@ go test ./...
 npm run build:web
 ```
 
-Latest validation on 2026-07-09 covered backend tests and frontend production build after local image uploads were added.
+Latest validation on 2026-07-09 covered backend tests and frontend production build after forum/comment support was added.
 
 Pending local environment action:
 
 ```powershell
 # Apply when PostgreSQL is running.
 psql "postgres://root:123456@localhost:5432/mental_health?sslmode=disable" -f database/migrations/000002_article_categories.up.sql
+psql "postgres://root:123456@localhost:5432/mental_health?sslmode=disable" -f database/migrations/000003_forum.up.sql
 ```
 
 Manual API validation completed:
@@ -198,8 +209,8 @@ app/(admin)
 app/(auth)
 ```
 
-6. Add forum/comment module after the first core flow is stable.
-7. Split the current single-page frontend into route groups once the feature surface grows further.
+6. Split the current single-page frontend into route groups once the feature surface grows further.
+7. Add assessment/questionnaire module.
 8. Add AI features later:
     - mental health Q&A
     - assessment interpretation

@@ -25,3 +25,21 @@ WHERE c.name = '心理科普' AND u.username = 'admin'
   AND NOT EXISTS (
     SELECT 1 FROM articles WHERE title = '如何识别压力信号'
   );
+
+INSERT INTO forum_posts (author_id, title, content, status)
+SELECT id, '最近如何缓解压力？', '欢迎分享最近有效的放松方式，比如运动、睡眠调整、和朋友聊天等。', 'published'
+FROM users
+WHERE username = 'student-demo'
+  AND NOT EXISTS (
+    SELECT 1 FROM forum_posts WHERE title = '最近如何缓解压力？'
+  );
+
+INSERT INTO forum_comments (post_id, author_id, content, status)
+SELECT p.id, u.id, '我一般会先把当天最焦虑的事情写下来，再决定明天处理哪一件。', 'published'
+FROM forum_posts p
+CROSS JOIN users u
+WHERE p.title = '最近如何缓解压力？'
+  AND u.username = 'counselor-demo'
+  AND NOT EXISTS (
+    SELECT 1 FROM forum_comments WHERE post_id = p.id AND content = '我一般会先把当天最焦虑的事情写下来，再决定明天处理哪一件。'
+  );
