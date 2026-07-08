@@ -1,6 +1,6 @@
 # Progress and Next Plan
 
-Date: 2026-07-08
+Date: 2026-07-09
 
 ## Current Goal
 
@@ -69,6 +69,7 @@ Implemented:
 - `POST /api/v1/article-categories`
 - `PUT /api/v1/article-categories/:id`
 - `DELETE /api/v1/article-categories/:id`
+- `POST /api/v1/uploads`
 - `GET /api/v1/articles`
 - `GET /api/v1/articles/:id`
 - `POST /api/v1/articles`
@@ -87,6 +88,7 @@ Implemented backend concerns:
 - CORS for local frontend development
 - soft archive for articles instead of physical delete
 - managed article categories with soft disable
+- authenticated local image uploads for avatars and article covers
 
 ### Frontend
 
@@ -97,12 +99,14 @@ Implemented:
 - login with demo accounts
 - counselor list
 - counselor profile edit panel for admin/counselor
+- counselor avatar upload
 - appointment creation
 - appointment list
 - appointment status operations for admin/counselor
 - article list
 - article detail
 - article create/update/archive panel for admin/counselor
+- article cover upload and display
 - article category select and category management panel for admin/counselor
 - live API integration against the Go service
 
@@ -115,7 +119,7 @@ go test ./...
 npm run build:web
 ```
 
-Latest validation on 2026-07-09 covered backend tests and frontend production build after counselor profile management was added.
+Latest validation on 2026-07-09 covered backend tests and frontend production build after local image uploads were added.
 
 Pending local environment action:
 
@@ -194,8 +198,8 @@ app/(admin)
 app/(auth)
 ```
 
-6. Implement file upload for avatars and article covers.
-7. Add forum/comment module after the first core flow is stable.
+6. Add forum/comment module after the first core flow is stable.
+7. Split the current single-page frontend into route groups once the feature surface grows further.
 8. Add AI features later:
     - mental health Q&A
     - assessment interpretation

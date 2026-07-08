@@ -15,3 +15,5 @@ coverage/
 database/postgres-data/
 database/legacy-mysql/
 legacy/
+uploads/*
+!uploads/.gitkeep

@@ -18,6 +18,7 @@ type Dependencies struct {
 func NewRouter(deps Dependencies) http.Handler {
 	router := gin.New()
 	router.Use(gin.Recovery(), CORS())
+	router.Static("/uploads", "uploads")
 
 	router.GET("/healthz", func(c *gin.Context) {
 		status := "ok"
@@ -33,6 +34,7 @@ func NewRouter(deps Dependencies) http.Handler {
 	appointmentHandler := NewAppointmentHandler(deps.DB)
 	articleHandler := NewArticleHandler(deps.DB)
 	articleCategoryHandler := NewArticleCategoryHandler(deps.DB)
+	uploadHandler := NewUploadHandler("uploads")
 
 	v1.GET("/meta", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
@@ -44,6 +46,7 @@ func NewRouter(deps Dependencies) http.Handler {
 				"article-categories",
 				"counselors",
 				"appointments",
+				"uploads",
 			},
 		})
 	})
@@ -61,6 +64,7 @@ func NewRouter(deps Dependencies) http.Handler {
 	v1.POST("/articles", RequireAuth(deps.Config.JWTSecret), RequireAnyRole("admin", "counselor"), articleHandler.Create)
 	v1.PUT("/articles/:id", RequireAuth(deps.Config.JWTSecret), RequireAnyRole("admin", "counselor"), articleHandler.Update)
 	v1.DELETE("/articles/:id", RequireAuth(deps.Config.JWTSecret), RequireAnyRole("admin", "counselor"), articleHandler.Archive)
+	v1.POST("/uploads", RequireAuth(deps.Config.JWTSecret), uploadHandler.Create)
 	v1.GET("/appointments", RequireAuth(deps.Config.JWTSecret), appointmentHandler.ListMine)
 	v1.POST("/appointments", RequireAuth(deps.Config.JWTSecret), appointmentHandler.Create)
 	v1.PATCH("/appointments/:id/status", RequireAuth(deps.Config.JWTSecret), appointmentHandler.UpdateStatus)

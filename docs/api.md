@@ -15,6 +15,7 @@ Implemented skeleton:
 - `POST /api/v1/article-categories`
 - `PUT /api/v1/article-categories/{id}`
 - `DELETE /api/v1/article-categories/{id}`
+- `POST /api/v1/uploads`
 - `GET /api/v1/articles`
 - `GET /api/v1/articles/{id}`
 - `POST /api/v1/articles`
@@ -114,6 +115,42 @@ Request:
 ```
 
 `name` and `specialty` are required. Optional fields are stored as empty values in responses when unset.
+
+## Uploads
+
+Upload an image file. Requires login:
+
+```text
+POST /api/v1/uploads
+Content-Type: multipart/form-data
+Authorization: Bearer <token>
+```
+
+Form field:
+
+```text
+file=<image file>
+```
+
+Allowed image types:
+
+- JPEG
+- PNG
+- WebP
+- GIF
+
+Maximum file size is 5 MB.
+
+Response:
+
+```json
+{
+  "filename": "20260709-150405-a1b2c3d4e5f60708.png",
+  "url": "/uploads/20260709-150405-a1b2c3d4e5f60708.png"
+}
+```
+
+The returned URL can be saved into `counselors.avatar_url` or `articles.cover_url`.
 
 ## Article Categories
 

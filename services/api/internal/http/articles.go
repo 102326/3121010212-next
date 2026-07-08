@@ -33,6 +33,7 @@ type articleRequest struct {
 	Title    string `json:"title" binding:"required,min=2,max=160"`
 	Summary  string `json:"summary" binding:"omitempty,max=500"`
 	Content  string `json:"content" binding:"required,min=2"`
+	CoverURL string `json:"cover_url" binding:"omitempty,max=500"`
 	Status   string `json:"status" binding:"omitempty,oneof=draft published archived"`
 }
 
@@ -168,11 +169,11 @@ func (h *ArticleHandler) Create(c *gin.Context) {
 
 	var item articleResponse
 	err = tx.QueryRow(ctx, `
-		INSERT INTO articles (category_id, author_id, title, summary, content, status, published_at)
-		VALUES ($1, $2, $3, NULLIF($4, ''), $5, $6::publish_status, CASE WHEN $6 = 'published' THEN now() ELSE NULL END)
+		INSERT INTO articles (category_id, author_id, title, summary, content, cover_url, status, published_at)
+		VALUES ($1, $2, $3, NULLIF($4, ''), $5, NULLIF($7, ''), $6::publish_status, CASE WHEN $6 = 'published' THEN now() ELSE NULL END)
 		RETURNING id::text, title, COALESCE(summary, ''), content, COALESCE(cover_url, ''),
 		          view_count, COALESCE(published_at::text, '')
-	`, categoryID, c.GetString("user_id"), strings.TrimSpace(req.Title), strings.TrimSpace(req.Summary), req.Content, status).
+	`, categoryID, c.GetString("user_id"), strings.TrimSpace(req.Title), strings.TrimSpace(req.Summary), req.Content, status, strings.TrimSpace(req.CoverURL)).
 		Scan(&item.ID, &item.Title, &item.Summary, &item.Content, &item.CoverURL, &item.ViewCount, &item.PublishedAt)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "create article"})
@@ -226,7 +227,7 @@ func (h *ArticleHandler) Update(c *gin.Context) {
 
 	query := `
 		UPDATE articles
-		SET category_id = $1, title = $2, summary = NULLIF($3, ''), content = $4,
+		SET category_id = $1, title = $2, summary = NULLIF($3, ''), content = $4, cover_url = NULLIF($9, ''),
 		    status = $5::publish_status,
 		    published_at = CASE WHEN $5 = 'published' AND published_at IS NULL THEN now() ELSE published_at END,
 		    updated_at = now()
@@ -236,7 +237,7 @@ func (h *ArticleHandler) Update(c *gin.Context) {
 	`
 
 	var item articleResponse
-	err = tx.QueryRow(ctx, query, categoryID, strings.TrimSpace(req.Title), strings.TrimSpace(req.Summary), req.Content, status, c.Param("id"), c.GetString("user_id"), c.GetString("role")).
+	err = tx.QueryRow(ctx, query, categoryID, strings.TrimSpace(req.Title), strings.TrimSpace(req.Summary), req.Content, status, c.Param("id"), c.GetString("user_id"), c.GetString("role"), strings.TrimSpace(req.CoverURL)).
 		Scan(&item.ID, &item.Title, &item.Summary, &item.Content, &item.CoverURL, &item.ViewCount, &item.PublishedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "article not found"})

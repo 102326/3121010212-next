@@ -6,6 +6,7 @@ import {
   CalendarCheck,
   CheckCircle2,
   Clock3,
+  ImagePlus,
   LibraryBig,
   LogIn,
   Pencil,
@@ -57,6 +58,7 @@ type Article = {
   title: string;
   summary?: string;
   content?: string;
+  cover_url?: string;
   view_count: number;
   published_at?: string;
 };
@@ -113,6 +115,7 @@ export default function Home() {
   const [articleTitle, setArticleTitle] = useState("");
   const [articleSummary, setArticleSummary] = useState("");
   const [articleContent, setArticleContent] = useState("");
+  const [articleCoverURL, setArticleCoverURL] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const canEditArticles = state.user?.role === "admin" || state.user?.role === "counselor";
@@ -166,6 +169,27 @@ export default function Home() {
       throw new Error(data.error ?? `HTTP ${response.status}`);
     }
     return data as T;
+  }
+
+  async function uploadImage(file: File) {
+    if (!state.token) {
+      throw new Error("请先登录");
+    }
+    const form = new FormData();
+    form.append("file", file);
+
+    const response = await fetch(`${API_BASE}/uploads`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${state.token}`
+      },
+      body: form
+    });
+    const data = (await response.json().catch(() => ({}))) as { url?: string; error?: string };
+    if (!response.ok || !data.url) {
+      throw new Error(data.error ?? "上传失败");
+    }
+    return data.url;
   }
 
   async function loadCounselors() {
@@ -242,6 +266,7 @@ export default function Home() {
       setArticleTitle(data.article.title);
       setArticleSummary(data.article.summary ?? "");
       setArticleContent(data.article.content ?? "");
+      setArticleCoverURL(data.article.cover_url ?? "");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "加载文章详情失败");
     } finally {
@@ -359,6 +384,23 @@ export default function Home() {
     }
   }
 
+  async function uploadCounselorAvatar(file: File | null) {
+    if (!file) {
+      return;
+    }
+    setLoading(true);
+    setMessage("");
+    try {
+      const url = await uploadImage(file);
+      setCounselorAvatarURL(url);
+      setMessage("头像已上传，保存资料后生效");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "上传头像失败");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function saveArticle() {
     if (!state.token || !canEditArticles) {
       setMessage("需要管理员或咨询师账号");
@@ -376,6 +418,7 @@ export default function Home() {
           title: articleTitle,
           summary: articleSummary,
           content: articleContent,
+          cover_url: articleCoverURL,
           status: "published"
         })
       });
@@ -384,6 +427,23 @@ export default function Home() {
       setMessage(editingArticleId ? "文章已更新" : "文章已创建");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "保存文章失败");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function uploadArticleCover(file: File | null) {
+    if (!file) {
+      return;
+    }
+    setLoading(true);
+    setMessage("");
+    try {
+      const url = await uploadImage(file);
+      setArticleCoverURL(url);
+      setMessage("封面已上传，保存文章后生效");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "上传封面失败");
     } finally {
       setLoading(false);
     }
@@ -453,6 +513,7 @@ export default function Home() {
       setArticleTitle("");
       setArticleSummary("");
       setArticleContent("");
+      setArticleCoverURL("");
       setState((current) => ({ ...current, selectedArticle: null }));
       await loadArticles();
       setMessage("文章已归档");
@@ -629,6 +690,16 @@ export default function Home() {
                     onChange={(event) => setCounselorAvatarURL(event.target.value)}
                   />
                 </label>
+                <label className="flex h-10 cursor-pointer items-center justify-center gap-2 rounded-md border border-border text-sm transition-colors hover:bg-muted">
+                  <ImagePlus className="size-4 text-primary" />
+                  上传头像
+                  <input
+                    className="hidden"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    onChange={(event) => void uploadCounselorAvatar(event.target.files?.[0] ?? null)}
+                  />
+                </label>
                 <label className="block text-sm">
                   <span className="mb-1 block text-muted-foreground">简介</span>
                   <textarea
@@ -770,6 +841,24 @@ export default function Home() {
                     onChange={(event) => setArticleContent(event.target.value)}
                   />
                 </label>
+                <label className="block text-sm">
+                  <span className="mb-1 block text-muted-foreground">封面 URL</span>
+                  <input
+                    className="h-10 w-full rounded-md border border-border px-3 outline-none focus:ring-2 focus:ring-primary"
+                    value={articleCoverURL}
+                    onChange={(event) => setArticleCoverURL(event.target.value)}
+                  />
+                </label>
+                <label className="flex h-10 cursor-pointer items-center justify-center gap-2 rounded-md border border-border text-sm transition-colors hover:bg-muted">
+                  <ImagePlus className="size-4 text-primary" />
+                  上传封面
+                  <input
+                    className="hidden"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    onChange={(event) => void uploadArticleCover(event.target.files?.[0] ?? null)}
+                  />
+                </label>
                 <div className="grid grid-cols-2 gap-2">
                   <Button className="gap-2" disabled={loading || !articleTitle || !articleContent} onClick={saveArticle}>
                     <Send className="size-4" />
@@ -788,6 +877,7 @@ export default function Home() {
                     setArticleTitle("");
                     setArticleSummary("");
                     setArticleContent("");
+                    setArticleCoverURL("");
                   }}
                 >
                   新建文章
@@ -927,6 +1017,11 @@ export default function Home() {
                         <span className="rounded-md bg-muted px-2 py-1 text-sm text-primary">{item.view_count}</span>
                       </div>
                       <p className="mt-3 text-sm leading-6 text-muted-foreground">{item.summary}</p>
+                      {item.cover_url ? (
+                        <div className="mt-3 aspect-video overflow-hidden rounded-md border border-border bg-muted">
+                          <img className="h-full w-full object-cover" src={item.cover_url} alt={item.title} />
+                        </div>
+                      ) : null}
                     </button>
                   ))
                 )}
@@ -942,6 +1037,11 @@ export default function Home() {
                     <span>{state.selectedArticle.author}</span>
                     <span>浏览 {state.selectedArticle.view_count}</span>
                   </div>
+                  {state.selectedArticle.cover_url ? (
+                    <div className="mb-4 aspect-video overflow-hidden rounded-md border border-border bg-muted">
+                      <img className="h-full w-full object-cover" src={state.selectedArticle.cover_url} alt={state.selectedArticle.title} />
+                    </div>
+                  ) : null}
                   <h3 className="text-lg font-semibold">{state.selectedArticle.title}</h3>
                   <p className="mt-3 text-sm leading-6 text-muted-foreground">{state.selectedArticle.summary}</p>
                   <p className="mt-4 text-sm leading-7">{state.selectedArticle.content}</p>
