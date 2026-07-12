@@ -133,6 +133,7 @@ Implemented:
   - reusable app header
   - reusable dashboard summary cards
 - split the left workspace sidebar into `PlatformSidebar` and focused panels for account login, appointment creation, counselor profile editing, category management, and article editing
+- split the main workspace grid into `MainContentPanels`, covering counselor cards, appointment status controls, article browsing/detail, forum post/comment workflows, and self-assessment UI
 
 ### Validation
 
@@ -216,7 +217,7 @@ NEXT_PUBLIC_API_URL=http://127.0.0.1:8080/api/v1
 3. Add backend run scripts for Windows development.
 4. Add structured API packages or sqlc-generated query layer before the API grows much larger.
 5. Continue splitting the shared workbench component into smaller feature components:
-    - counselor, appointment, article, forum, and assessment main content panels
+    - split `MainContentPanels` into narrower counselor, appointment, article, forum, and assessment components when those areas need deeper changes
     - shared form/input helpers if repeated Tailwind field markup keeps growing
 6. Add AI features later:
     - mental health Q&A
