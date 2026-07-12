@@ -16,13 +16,12 @@ import { DashboardSummary } from "@/components/platform/dashboard-summary";
 import { MainContentPanels } from "@/components/platform/main-panels";
 import { PlatformSidebar } from "@/components/platform/sidebar";
 import { statusText } from "@/components/platform/types";
+import { useAssessmentActions } from "@/components/platform/use-assessment-actions";
 import { useArticleActions } from "@/components/platform/use-article-actions";
 import { useForumActions } from "@/components/platform/use-forum-actions";
 import type {
   ApiState,
   Appointment,
-  AssessmentQuestion,
-  AssessmentSubmission,
   Counselor,
   DashboardMetric,
   User
@@ -55,7 +54,6 @@ export default function Home() {
   const [counselorPhone, setCounselorPhone] = useState("");
   const [counselorBio, setCounselorBio] = useState("");
   const [counselorAvatarURL, setCounselorAvatarURL] = useState("");
-  const [assessmentAnswers, setAssessmentAnswers] = useState<Record<string, number>>({});
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const canEditArticles = state.user?.role === "admin" || state.user?.role === "counselor";
@@ -97,12 +95,20 @@ export default function Home() {
     apiFetch
   });
 
+  const assessmentActions = useAssessmentActions({
+    state,
+    setState,
+    setLoading,
+    setMessage,
+    apiFetch
+  });
+
   useEffect(() => {
     void loadCounselors();
     void articleActions.loadCategories();
     void articleActions.loadArticles();
     void forumActions.loadForumPosts();
-    void loadAssessmentQuestions();
+    void assessmentActions.loadAssessmentQuestions();
   }, []);
 
   useEffect(() => {
@@ -148,43 +154,6 @@ export default function Home() {
     }
   }
 
-  async function loadAssessmentQuestions() {
-    setLoading(true);
-    setMessage("");
-    try {
-      const data = await apiFetch<{ questions: AssessmentQuestion[] }>("/assessment/questions");
-      setState((current) => ({
-        ...current,
-        assessmentQuestions: data.questions
-      }));
-      setAssessmentAnswers((current) => {
-        const next = { ...current };
-        for (const question of data.questions) {
-          if (next[question.id] === undefined) {
-            next[question.id] = 0;
-          }
-        }
-        return next;
-      });
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "加载测评题目失败");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function loadAssessmentSubmissions(token = state.token) {
-    if (!token) {
-      return;
-    }
-    const data = await apiFetch<{ submissions: AssessmentSubmission[] }>("/assessment/submissions", {}, token);
-    setState((current) => ({
-      ...current,
-      assessmentSubmissions: data.submissions,
-      latestAssessment: data.submissions[0] ?? current.latestAssessment
-    }));
-  }
-
   async function loadAppointments(token = state.token) {
     if (!token) {
       return;
@@ -206,7 +175,7 @@ export default function Home() {
       });
       setState((current) => ({ ...current, token: data.token, user: data.user }));
       await loadAppointments(data.token);
-      await loadAssessmentSubmissions(data.token);
+      await assessmentActions.loadAssessmentSubmissions(data.token);
       setMessage(`已登录：${data.user.display_name}`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "登录失败");
@@ -308,39 +277,6 @@ export default function Home() {
     }
   }
 
-  async function submitAssessment() {
-    if (!state.token) {
-      setMessage("请先登录");
-      return;
-    }
-    if (state.assessmentQuestions.length === 0) {
-      setMessage("暂无测评题目");
-      return;
-    }
-    setLoading(true);
-    setMessage("");
-    try {
-      const answers = state.assessmentQuestions.map((question) => ({
-        question_id: question.id,
-        score: assessmentAnswers[question.id] ?? 0
-      }));
-      const data = await apiFetch<{ submission: AssessmentSubmission }>("/assessment/submissions", {
-        method: "POST",
-        body: JSON.stringify({ answers })
-      });
-      setState((current) => ({
-        ...current,
-        latestAssessment: data.submission,
-        assessmentSubmissions: [data.submission, ...current.assessmentSubmissions]
-      }));
-      setMessage("测评已提交");
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "提交测评失败");
-    } finally {
-      setLoading(false);
-    }
-  }
-
   return (
     <main className="min-h-screen bg-background">
       <AppHeader currentUserName={state.user?.display_name ?? null} />
@@ -413,7 +349,7 @@ export default function Home() {
               void articleActions.loadCategories();
               void articleActions.loadArticles();
               void forumActions.loadForumPosts();
-              void loadAssessmentQuestions();
+              void assessmentActions.loadAssessmentQuestions();
             }}
           />
 
@@ -427,8 +363,8 @@ export default function Home() {
             setForumContent={forumActions.setForumContent}
             forumComment={forumActions.forumComment}
             setForumComment={forumActions.setForumComment}
-            assessmentAnswers={assessmentAnswers}
-            setAssessmentAnswers={setAssessmentAnswers}
+            assessmentAnswers={assessmentActions.assessmentAnswers}
+            setAssessmentAnswers={assessmentActions.setAssessmentAnswers}
             onSelectCounselor={setSelectedCounselor}
             onUpdateAppointmentStatus={updateAppointmentStatus}
             onLoadArticle={articleActions.loadArticle}
@@ -437,7 +373,7 @@ export default function Home() {
             onArchiveForumPost={forumActions.archiveForumPost}
             onArchiveForumComment={forumActions.archiveForumComment}
             onCreateForumComment={forumActions.createForumComment}
-            onSubmitAssessment={submitAssessment}
+            onSubmitAssessment={assessmentActions.submitAssessment}
           />
         </div>
       </section>
