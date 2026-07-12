@@ -125,6 +125,7 @@ Implemented:
 - article category select and category management panel for admin/counselor
 - forum post list, post detail, comment list, post creation, and comment creation
 - self-assessment question list, score selection, submission, and latest result display
+- route-level frontend entry pages for dashboard, counselors, articles, forum, and assessment
 - live API integration against the Go service
 
 ### Validation
@@ -136,7 +137,7 @@ go test ./...
 npm run build:web
 ```
 
-Latest validation on 2026-07-13 covered backend tests and frontend production build after assessment support was added.
+Latest validation on 2026-07-13 covered backend tests and frontend production build after frontend route entry pages were added.
 
 Pending local environment action:
 
@@ -208,15 +209,7 @@ NEXT_PUBLIC_API_URL=http://127.0.0.1:8080/api/v1
 
 3. Add backend run scripts for Windows development.
 4. Add structured API packages or sqlc-generated query layer before the API grows much larger.
-5. Split the current single-page frontend into route groups:
-
-```text
-app/(public)
-app/(account)
-app/(admin)
-app/(auth)
-```
-
+5. Split the shared workbench component into smaller feature components.
 6. Add AI features later:
     - mental health Q&A
     - assessment interpretation
