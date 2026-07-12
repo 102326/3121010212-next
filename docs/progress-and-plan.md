@@ -139,6 +139,7 @@ Implemented:
 - moved forum state/actions into `useForumActions`, including post list/detail loading, post create/archive, comment create/archive, and forum form state
 - moved assessment state/actions into `useAssessmentActions`, including question loading, answer state, submission history loading, and assessment submission
 - moved appointment state/actions into `useAppointmentActions`, including appointment form state, appointment loading, appointment creation, and appointment status updates
+- moved counselor profile state/actions into `useCounselorActions`, including counselor loading, selected counselor state, profile form syncing, profile save, and avatar upload
 
 ### Validation
 
@@ -222,8 +223,7 @@ NEXT_PUBLIC_API_URL=http://127.0.0.1:8080/api/v1
 3. Add backend run scripts for Windows development.
 4. Add structured API packages or sqlc-generated query layer before the API grows much larger.
 5. Continue splitting the shared workbench component into smaller feature components:
-    - move counselor profile workflow into a focused hook
-    - split `MainContentPanels` into narrower counselor, appointment, article, forum, and assessment components when those areas need deeper changes
+    - split `PlatformSidebar` and `MainContentPanels` into narrower feature files when those areas need deeper changes
     - shared form/input helpers if repeated Tailwind field markup keeps growing
 6. Add AI features later:
     - mental health Q&A

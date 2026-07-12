@@ -18,10 +18,10 @@ import { PlatformSidebar } from "@/components/platform/sidebar";
 import { useAppointmentActions } from "@/components/platform/use-appointment-actions";
 import { useAssessmentActions } from "@/components/platform/use-assessment-actions";
 import { useArticleActions } from "@/components/platform/use-article-actions";
+import { useCounselorActions } from "@/components/platform/use-counselor-actions";
 import { useForumActions } from "@/components/platform/use-forum-actions";
 import type {
   ApiState,
-  Counselor,
   DashboardMetric,
   User
 } from "@/components/platform/types";
@@ -43,24 +43,11 @@ export default function Home() {
   });
   const [username, setUsername] = useState("student-demo");
   const [password, setPassword] = useState("123456");
-  const [selectedCounselor, setSelectedCounselor] = useState("");
-  const [counselorName, setCounselorName] = useState("");
-  const [counselorGender, setCounselorGender] = useState("");
-  const [counselorSpecialty, setCounselorSpecialty] = useState("");
-  const [counselorAvailableTime, setCounselorAvailableTime] = useState("");
-  const [counselorPhone, setCounselorPhone] = useState("");
-  const [counselorBio, setCounselorBio] = useState("");
-  const [counselorAvatarURL, setCounselorAvatarURL] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const canEditArticles = state.user?.role === "admin" || state.user?.role === "counselor";
   const canManageAppointments = state.user?.role === "admin" || state.user?.role === "counselor";
   const canManageCounselors = state.user?.role === "admin" || state.user?.role === "counselor";
-
-  const activeCounselor = useMemo(
-    () => state.counselors.find((item) => item.id === selectedCounselor) ?? null,
-    [selectedCounselor, state.counselors]
-  );
 
   const stats = useMemo<DashboardMetric[]>(
     () => [
@@ -73,6 +60,16 @@ export default function Home() {
     ],
     [state.appointments, state.articles.length, state.assessmentQuestions.length, state.counselors.length, state.forumPosts.length]
   );
+
+  const counselorActions = useCounselorActions({
+    state,
+    setState,
+    canManageCounselors,
+    setLoading,
+    setMessage,
+    apiFetch,
+    uploadImage
+  });
 
   const articleActions = useArticleActions({
     state,
@@ -104,32 +101,19 @@ export default function Home() {
     state,
     setState,
     canManageAppointments,
-    selectedCounselor,
+    selectedCounselor: counselorActions.selectedCounselor,
     setLoading,
     setMessage,
     apiFetch
   });
 
   useEffect(() => {
-    void loadCounselors();
+    void counselorActions.loadCounselors();
     void articleActions.loadCategories();
     void articleActions.loadArticles();
     void forumActions.loadForumPosts();
     void assessmentActions.loadAssessmentQuestions();
   }, []);
-
-  useEffect(() => {
-    if (!activeCounselor) {
-      return;
-    }
-    setCounselorName(activeCounselor.name);
-    setCounselorGender(activeCounselor.gender ?? "");
-    setCounselorSpecialty(activeCounselor.specialty);
-    setCounselorAvailableTime(activeCounselor.available_time ?? "");
-    setCounselorPhone(activeCounselor.phone ?? "");
-    setCounselorBio(activeCounselor.bio ?? "");
-    setCounselorAvatarURL(activeCounselor.avatar_url ?? "");
-  }, [activeCounselor]);
 
   async function apiFetch<T>(path: string, init: RequestInit = {}, token = state.token): Promise<T> {
     return apiFetchJson<T>(path, init, token);
@@ -140,25 +124,6 @@ export default function Home() {
       throw new Error("请先登录");
     }
     return uploadImageFile(file, state.token);
-  }
-
-  async function loadCounselors() {
-    setLoading(true);
-    setMessage("");
-    try {
-      const data = await apiFetch<{ counselors: Counselor[] }>("/counselors");
-      setState((current) => ({
-        ...current,
-        counselors: data.counselors
-      }));
-      if (data.counselors[0]) {
-        setSelectedCounselor((current) => current || data.counselors[0].id);
-      }
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "加载咨询师失败");
-    } finally {
-      setLoading(false);
-    }
   }
 
   async function login() {
@@ -180,53 +145,6 @@ export default function Home() {
     }
   }
 
-  async function saveCounselorProfile() {
-    if (!state.token || !canManageCounselors || !selectedCounselor) {
-      setMessage("需要管理员或咨询师账号，并选择咨询师");
-      return;
-    }
-    setLoading(true);
-    setMessage("");
-    try {
-      const data = await apiFetch<{ counselor: Counselor }>(`/counselors/${selectedCounselor}`, {
-        method: "PUT",
-        body: JSON.stringify({
-          name: counselorName,
-          gender: counselorGender,
-          avatar_url: counselorAvatarURL,
-          specialty: counselorSpecialty,
-          available_time: counselorAvailableTime,
-          phone: counselorPhone,
-          bio: counselorBio
-        })
-      });
-      await loadCounselors();
-      setSelectedCounselor(data.counselor.id);
-      setMessage("咨询师资料已更新");
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "保存咨询师资料失败");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function uploadCounselorAvatar(file: File | null) {
-    if (!file) {
-      return;
-    }
-    setLoading(true);
-    setMessage("");
-    try {
-      const url = await uploadImage(file);
-      setCounselorAvatarURL(url);
-      setMessage("头像已上传，保存资料后生效");
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "上传头像失败");
-    } finally {
-      setLoading(false);
-    }
-  }
-
   return (
     <main className="min-h-screen bg-background">
       <AppHeader currentUserName={state.user?.display_name ?? null} />
@@ -242,26 +160,26 @@ export default function Home() {
           setUsername={setUsername}
           password={password}
           setPassword={setPassword}
-          selectedCounselor={selectedCounselor}
-          setSelectedCounselor={setSelectedCounselor}
+          selectedCounselor={counselorActions.selectedCounselor}
+          setSelectedCounselor={counselorActions.setSelectedCounselor}
           scheduledAt={appointmentActions.scheduledAt}
           setScheduledAt={appointmentActions.setScheduledAt}
           appointmentContent={appointmentActions.content}
           setAppointmentContent={appointmentActions.setContent}
-          counselorName={counselorName}
-          setCounselorName={setCounselorName}
-          counselorGender={counselorGender}
-          setCounselorGender={setCounselorGender}
-          counselorSpecialty={counselorSpecialty}
-          setCounselorSpecialty={setCounselorSpecialty}
-          counselorAvailableTime={counselorAvailableTime}
-          setCounselorAvailableTime={setCounselorAvailableTime}
-          counselorPhone={counselorPhone}
-          setCounselorPhone={setCounselorPhone}
-          counselorBio={counselorBio}
-          setCounselorBio={setCounselorBio}
-          counselorAvatarURL={counselorAvatarURL}
-          setCounselorAvatarURL={setCounselorAvatarURL}
+          counselorName={counselorActions.counselorName}
+          setCounselorName={counselorActions.setCounselorName}
+          counselorGender={counselorActions.counselorGender}
+          setCounselorGender={counselorActions.setCounselorGender}
+          counselorSpecialty={counselorActions.counselorSpecialty}
+          setCounselorSpecialty={counselorActions.setCounselorSpecialty}
+          counselorAvailableTime={counselorActions.counselorAvailableTime}
+          setCounselorAvailableTime={counselorActions.setCounselorAvailableTime}
+          counselorPhone={counselorActions.counselorPhone}
+          setCounselorPhone={counselorActions.setCounselorPhone}
+          counselorBio={counselorActions.counselorBio}
+          setCounselorBio={counselorActions.setCounselorBio}
+          counselorAvatarURL={counselorActions.counselorAvatarURL}
+          setCounselorAvatarURL={counselorActions.setCounselorAvatarURL}
           categoryName={articleActions.categoryName}
           setCategoryName={articleActions.setCategoryName}
           editingCategoryId={articleActions.editingCategoryId}
@@ -280,8 +198,8 @@ export default function Home() {
           setArticleCoverURL={articleActions.setArticleCoverURL}
           onLogin={login}
           onCreateAppointment={appointmentActions.createAppointment}
-          onSaveCounselorProfile={saveCounselorProfile}
-          onUploadCounselorAvatar={uploadCounselorAvatar}
+          onSaveCounselorProfile={counselorActions.saveCounselorProfile}
+          onUploadCounselorAvatar={counselorActions.uploadCounselorAvatar}
           onSaveCategory={articleActions.saveCategory}
           onDisableCategory={articleActions.disableCategory}
           onSaveArticle={articleActions.saveArticle}
@@ -295,7 +213,7 @@ export default function Home() {
             message={message}
             stats={stats}
             onRefresh={() => {
-              void loadCounselors();
+              void counselorActions.loadCounselors();
               void articleActions.loadCategories();
               void articleActions.loadArticles();
               void forumActions.loadForumPosts();
@@ -315,7 +233,7 @@ export default function Home() {
             setForumComment={forumActions.setForumComment}
             assessmentAnswers={assessmentActions.assessmentAnswers}
             setAssessmentAnswers={assessmentActions.setAssessmentAnswers}
-            onSelectCounselor={setSelectedCounselor}
+            onSelectCounselor={counselorActions.setSelectedCounselor}
             onUpdateAppointmentStatus={appointmentActions.updateAppointmentStatus}
             onLoadArticle={articleActions.loadArticle}
             onCreateForumPost={forumActions.createForumPost}
