@@ -17,6 +17,7 @@ import { MainContentPanels } from "@/components/platform/main-panels";
 import { PlatformSidebar } from "@/components/platform/sidebar";
 import { statusText } from "@/components/platform/types";
 import { useArticleActions } from "@/components/platform/use-article-actions";
+import { useForumActions } from "@/components/platform/use-forum-actions";
 import type {
   ApiState,
   Appointment,
@@ -24,7 +25,6 @@ import type {
   AssessmentSubmission,
   Counselor,
   DashboardMetric,
-  ForumPost,
   User
 } from "@/components/platform/types";
 
@@ -55,9 +55,6 @@ export default function Home() {
   const [counselorPhone, setCounselorPhone] = useState("");
   const [counselorBio, setCounselorBio] = useState("");
   const [counselorAvatarURL, setCounselorAvatarURL] = useState("");
-  const [forumTitle, setForumTitle] = useState("");
-  const [forumContent, setForumContent] = useState("");
-  const [forumComment, setForumComment] = useState("");
   const [assessmentAnswers, setAssessmentAnswers] = useState<Record<string, number>>({});
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
@@ -92,11 +89,19 @@ export default function Home() {
     uploadImage
   });
 
+  const forumActions = useForumActions({
+    state,
+    setState,
+    setLoading,
+    setMessage,
+    apiFetch
+  });
+
   useEffect(() => {
     void loadCounselors();
     void articleActions.loadCategories();
     void articleActions.loadArticles();
-    void loadForumPosts();
+    void forumActions.loadForumPosts();
     void loadAssessmentQuestions();
   }, []);
 
@@ -143,25 +148,6 @@ export default function Home() {
     }
   }
 
-  async function loadForumPosts() {
-    setLoading(true);
-    setMessage("");
-    try {
-      const data = await apiFetch<{ posts: ForumPost[] }>("/forum-posts");
-      setState((current) => ({
-        ...current,
-        forumPosts: data.posts
-      }));
-      if (data.posts[0]) {
-        void loadForumPost(data.posts[0].id);
-      }
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "加载社区帖子失败");
-    } finally {
-      setLoading(false);
-    }
-  }
-
   async function loadAssessmentQuestions() {
     setLoading(true);
     setMessage("");
@@ -197,25 +183,6 @@ export default function Home() {
       assessmentSubmissions: data.submissions,
       latestAssessment: data.submissions[0] ?? current.latestAssessment
     }));
-  }
-
-  async function loadForumPost(id: string) {
-    setLoading(true);
-    setMessage("");
-    try {
-      const data = await apiFetch<{ post: ForumPost }>(`/forum-posts/${id}`);
-      setState((current) => ({
-        ...current,
-        selectedForumPost: data.post,
-        forumPosts: current.forumPosts.map((item) =>
-          item.id === data.post.id ? { ...item, comment_count: data.post.comment_count } : item
-        )
-      }));
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "加载帖子详情失败");
-    } finally {
-      setLoading(false);
-    }
   }
 
   async function loadAppointments(token = state.token) {
@@ -341,89 +308,6 @@ export default function Home() {
     }
   }
 
-  async function createForumPost() {
-    if (!state.token) {
-      setMessage("请先登录");
-      return;
-    }
-    setLoading(true);
-    setMessage("");
-    try {
-      const data = await apiFetch<{ post: ForumPost }>("/forum-posts", {
-        method: "POST",
-        body: JSON.stringify({ title: forumTitle, content: forumContent })
-      });
-      setForumTitle("");
-      setForumContent("");
-      await loadForumPosts();
-      await loadForumPost(data.post.id);
-      setMessage("帖子已发布");
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "发布帖子失败");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function archiveForumPost(id: string) {
-    if (!state.token) {
-      setMessage("请先登录");
-      return;
-    }
-    setLoading(true);
-    setMessage("");
-    try {
-      await apiFetch(`/forum-posts/${id}`, { method: "DELETE" });
-      setState((current) => ({ ...current, selectedForumPost: null }));
-      await loadForumPosts();
-      setMessage("帖子已删除");
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "删除帖子失败");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function createForumComment() {
-    if (!state.token || !state.selectedForumPost) {
-      setMessage("请先登录并选择帖子");
-      return;
-    }
-    setLoading(true);
-    setMessage("");
-    try {
-      await apiFetch(`/forum-posts/${state.selectedForumPost.id}/comments`, {
-        method: "POST",
-        body: JSON.stringify({ content: forumComment })
-      });
-      setForumComment("");
-      await loadForumPost(state.selectedForumPost.id);
-      setMessage("评论已发布");
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "发布评论失败");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function archiveForumComment(id: string) {
-    if (!state.token || !state.selectedForumPost) {
-      setMessage("请先登录并选择帖子");
-      return;
-    }
-    setLoading(true);
-    setMessage("");
-    try {
-      await apiFetch(`/forum-comments/${id}`, { method: "DELETE" });
-      await loadForumPost(state.selectedForumPost.id);
-      setMessage("评论已删除");
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "删除评论失败");
-    } finally {
-      setLoading(false);
-    }
-  }
-
   async function submitAssessment() {
     if (!state.token) {
       setMessage("请先登录");
@@ -528,7 +412,7 @@ export default function Home() {
               void loadCounselors();
               void articleActions.loadCategories();
               void articleActions.loadArticles();
-              void loadForumPosts();
+              void forumActions.loadForumPosts();
               void loadAssessmentQuestions();
             }}
           />
@@ -537,22 +421,22 @@ export default function Home() {
             state={state}
             loading={loading}
             canManageAppointments={canManageAppointments}
-            forumTitle={forumTitle}
-            setForumTitle={setForumTitle}
-            forumContent={forumContent}
-            setForumContent={setForumContent}
-            forumComment={forumComment}
-            setForumComment={setForumComment}
+            forumTitle={forumActions.forumTitle}
+            setForumTitle={forumActions.setForumTitle}
+            forumContent={forumActions.forumContent}
+            setForumContent={forumActions.setForumContent}
+            forumComment={forumActions.forumComment}
+            setForumComment={forumActions.setForumComment}
             assessmentAnswers={assessmentAnswers}
             setAssessmentAnswers={setAssessmentAnswers}
             onSelectCounselor={setSelectedCounselor}
             onUpdateAppointmentStatus={updateAppointmentStatus}
             onLoadArticle={articleActions.loadArticle}
-            onCreateForumPost={createForumPost}
-            onLoadForumPost={loadForumPost}
-            onArchiveForumPost={archiveForumPost}
-            onArchiveForumComment={archiveForumComment}
-            onCreateForumComment={createForumComment}
+            onCreateForumPost={forumActions.createForumPost}
+            onLoadForumPost={forumActions.loadForumPost}
+            onArchiveForumPost={forumActions.archiveForumPost}
+            onArchiveForumComment={forumActions.archiveForumComment}
+            onCreateForumComment={forumActions.createForumComment}
             onSubmitAssessment={submitAssessment}
           />
         </div>

@@ -136,6 +136,7 @@ Implemented:
 - split the left workspace sidebar into `PlatformSidebar` and focused panels for account login, appointment creation, counselor profile editing, category management, and article editing
 - split the main workspace grid into `MainContentPanels`, covering counselor cards, appointment status controls, article browsing/detail, forum post/comment workflows, and self-assessment UI
 - moved article and category state/actions into `useArticleActions`, including article list/detail loading, save/archive, category management, and article cover upload
+- moved forum state/actions into `useForumActions`, including post list/detail loading, post create/archive, comment create/archive, and forum form state
 
 ### Validation
 
@@ -219,7 +220,7 @@ NEXT_PUBLIC_API_URL=http://127.0.0.1:8080/api/v1
 3. Add backend run scripts for Windows development.
 4. Add structured API packages or sqlc-generated query layer before the API grows much larger.
 5. Continue splitting the shared workbench component into smaller feature components:
-    - move forum and assessment workflows into focused hooks
+    - move assessment workflows into a focused hook
     - split `MainContentPanels` into narrower counselor, appointment, article, forum, and assessment components when those areas need deeper changes
     - shared form/input helpers if repeated Tailwind field markup keeps growing
 6. Add AI features later:
