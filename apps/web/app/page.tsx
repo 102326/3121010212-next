@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   Activity,
+  ClipboardCheck,
   CalendarCheck,
   CheckCircle2,
   Clock3,
@@ -90,6 +91,22 @@ type ForumPost = {
   comments?: ForumComment[];
 };
 
+type AssessmentQuestion = {
+  id: string;
+  title: string;
+  dimension: string;
+  sort_order: number;
+};
+
+type AssessmentSubmission = {
+  id: string;
+  answers: { question_id: string; score: number }[];
+  total_score: number;
+  level: string;
+  suggestion: string;
+  created_at: string;
+};
+
 type ApiState = {
   token: string;
   user: User | null;
@@ -98,6 +115,9 @@ type ApiState = {
   articles: Article[];
   categories: ArticleCategory[];
   forumPosts: ForumPost[];
+  assessmentQuestions: AssessmentQuestion[];
+  assessmentSubmissions: AssessmentSubmission[];
+  latestAssessment: AssessmentSubmission | null;
   selectedForumPost: ForumPost | null;
   selectedArticle: Article | null;
 };
@@ -118,6 +138,9 @@ export default function Home() {
     articles: [],
     categories: [],
     forumPosts: [],
+    assessmentQuestions: [],
+    assessmentSubmissions: [],
+    latestAssessment: null,
     selectedForumPost: null,
     selectedArticle: null
   });
@@ -144,6 +167,7 @@ export default function Home() {
   const [forumTitle, setForumTitle] = useState("");
   const [forumContent, setForumContent] = useState("");
   const [forumComment, setForumComment] = useState("");
+  const [assessmentAnswers, setAssessmentAnswers] = useState<Record<string, number>>({});
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const canEditArticles = state.user?.role === "admin" || state.user?.role === "counselor";
@@ -161,9 +185,10 @@ export default function Home() {
       { name: "我的预约", value: String(state.appointments.length), icon: CalendarCheck },
       { name: "健康知识", value: String(state.articles.length), icon: LibraryBig },
       { name: "社区帖子", value: String(state.forumPosts.length), icon: MessageSquareText },
+      { name: "测评题目", value: String(state.assessmentQuestions.length), icon: ClipboardCheck },
       { name: "待确认", value: String(state.appointments.filter((item) => item.status === "pending").length), icon: Clock3 }
     ],
-    [state.appointments, state.articles.length, state.counselors.length, state.forumPosts.length]
+    [state.appointments, state.articles.length, state.assessmentQuestions.length, state.counselors.length, state.forumPosts.length]
   );
 
   useEffect(() => {
@@ -171,6 +196,7 @@ export default function Home() {
     void loadCategories();
     void loadArticles();
     void loadForumPosts();
+    void loadAssessmentQuestions();
   }, []);
 
   useEffect(() => {
@@ -299,6 +325,43 @@ export default function Home() {
     }
   }
 
+  async function loadAssessmentQuestions() {
+    setLoading(true);
+    setMessage("");
+    try {
+      const data = await apiFetch<{ questions: AssessmentQuestion[] }>("/assessment/questions");
+      setState((current) => ({
+        ...current,
+        assessmentQuestions: data.questions
+      }));
+      setAssessmentAnswers((current) => {
+        const next = { ...current };
+        for (const question of data.questions) {
+          if (next[question.id] === undefined) {
+            next[question.id] = 0;
+          }
+        }
+        return next;
+      });
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "加载测评题目失败");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function loadAssessmentSubmissions(token = state.token) {
+    if (!token) {
+      return;
+    }
+    const data = await apiFetch<{ submissions: AssessmentSubmission[] }>("/assessment/submissions", {}, token);
+    setState((current) => ({
+      ...current,
+      assessmentSubmissions: data.submissions,
+      latestAssessment: data.submissions[0] ?? current.latestAssessment
+    }));
+  }
+
   async function loadForumPost(id: string) {
     setLoading(true);
     setMessage("");
@@ -368,6 +431,7 @@ export default function Home() {
       });
       setState((current) => ({ ...current, token: data.token, user: data.user }));
       await loadAppointments(data.token);
+      await loadAssessmentSubmissions(data.token);
       setMessage(`已登录：${data.user.display_name}`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "登录失败");
@@ -595,6 +659,39 @@ export default function Home() {
       setMessage("评论已删除");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "删除评论失败");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function submitAssessment() {
+    if (!state.token) {
+      setMessage("请先登录");
+      return;
+    }
+    if (state.assessmentQuestions.length === 0) {
+      setMessage("暂无测评题目");
+      return;
+    }
+    setLoading(true);
+    setMessage("");
+    try {
+      const answers = state.assessmentQuestions.map((question) => ({
+        question_id: question.id,
+        score: assessmentAnswers[question.id] ?? 0
+      }));
+      const data = await apiFetch<{ submission: AssessmentSubmission }>("/assessment/submissions", {
+        method: "POST",
+        body: JSON.stringify({ answers })
+      });
+      setState((current) => ({
+        ...current,
+        latestAssessment: data.submission,
+        assessmentSubmissions: [data.submission, ...current.assessmentSubmissions]
+      }));
+      setMessage("测评已提交");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "提交测评失败");
     } finally {
       setLoading(false);
     }
@@ -1292,6 +1389,60 @@ export default function Home() {
               ) : (
                 <p className="rounded-md border border-dashed border-border p-4 text-sm text-muted-foreground">选择一个帖子查看详情</p>
               )}
+            </div>
+
+            <div className="rounded-lg border border-border bg-white p-5 shadow-sm">
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="font-semibold">心理测评</h2>
+                <ClipboardCheck className="size-4 text-primary" />
+              </div>
+              <div className="space-y-3">
+                {state.assessmentQuestions.length === 0 ? (
+                  <p className="rounded-md border border-dashed border-border p-4 text-sm text-muted-foreground">暂无测评题目</p>
+                ) : (
+                  state.assessmentQuestions.map((item) => (
+                    <div key={item.id} className="rounded-md border border-border p-3">
+                      <div className="mb-3 flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-medium">{item.title}</p>
+                          <p className="mt-1 text-xs text-muted-foreground">{item.dimension}</p>
+                        </div>
+                        <span className="rounded-md bg-muted px-2 py-1 text-sm text-primary">{assessmentAnswers[item.id] ?? 0}</span>
+                      </div>
+                      <select
+                        className="h-10 w-full rounded-md border border-border px-3 text-sm outline-none focus:ring-2 focus:ring-primary"
+                        value={assessmentAnswers[item.id] ?? 0}
+                        onChange={(event) =>
+                          setAssessmentAnswers((current) => ({
+                            ...current,
+                            [item.id]: Number(event.target.value)
+                          }))
+                        }
+                      >
+                        <option value={0}>0 - 几乎没有</option>
+                        <option value={1}>1 - 偶尔</option>
+                        <option value={2}>2 - 有时</option>
+                        <option value={3}>3 - 经常</option>
+                        <option value={4}>4 - 几乎总是</option>
+                      </select>
+                    </div>
+                  ))
+                )}
+                <Button className="w-full gap-2" disabled={loading || !state.token || state.assessmentQuestions.length === 0} onClick={submitAssessment}>
+                  <Send className="size-4" />
+                  提交测评
+                </Button>
+                {state.latestAssessment ? (
+                  <div className="rounded-md border border-border bg-muted p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="font-medium">最近结果</p>
+                      <span className="rounded-md bg-white px-2 py-1 text-sm text-primary">{state.latestAssessment.level}</span>
+                    </div>
+                    <p className="mt-2 text-2xl font-semibold">{state.latestAssessment.total_score}</p>
+                    <p className="mt-2 text-sm leading-6 text-muted-foreground">{state.latestAssessment.suggestion}</p>
+                  </div>
+                ) : null}
+              </div>
             </div>
 
             <div className="rounded-lg border border-border bg-white p-5 shadow-sm">

@@ -27,6 +27,9 @@ Implemented skeleton:
 - `DELETE /api/v1/forum-posts/{id}`
 - `POST /api/v1/forum-posts/{id}/comments`
 - `DELETE /api/v1/forum-comments/{id}`
+- `GET /api/v1/assessment/questions`
+- `POST /api/v1/assessment/submissions`
+- `GET /api/v1/assessment/submissions`
 - `GET /api/v1/appointments`
 - `POST /api/v1/appointments`
 - `PATCH /api/v1/appointments/{id}/status`
@@ -199,6 +202,48 @@ Archive a comment. Requires login; only the author or admin can archive it:
 
 ```text
 DELETE /api/v1/forum-comments/{id}
+```
+
+## Assessment
+
+List active assessment questions:
+
+```text
+GET /api/v1/assessment/questions
+```
+
+Submit a self-assessment. Requires login:
+
+```json
+{
+  "answers": [
+    {
+      "question_id": "<uuid>",
+      "score": 2
+    }
+  ]
+}
+```
+
+Each score must be between `0` and `4`.
+
+Response:
+
+```json
+{
+  "submission": {
+    "id": "<uuid>",
+    "total_score": 8,
+    "level": "medium",
+    "suggestion": "近期需要关注睡眠、情绪和日常节奏，可以尝试记录压力来源并主动调整。"
+  }
+}
+```
+
+List current user's recent submissions:
+
+```text
+GET /api/v1/assessment/submissions
 ```
 
 ## Article Categories

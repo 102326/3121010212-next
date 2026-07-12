@@ -36,6 +36,7 @@ func NewRouter(deps Dependencies) http.Handler {
 	articleCategoryHandler := NewArticleCategoryHandler(deps.DB)
 	uploadHandler := NewUploadHandler("uploads")
 	forumHandler := NewForumHandler(deps.DB)
+	assessmentHandler := NewAssessmentHandler(deps.DB)
 
 	v1.GET("/meta", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
@@ -49,6 +50,7 @@ func NewRouter(deps Dependencies) http.Handler {
 				"appointments",
 				"uploads",
 				"forum",
+				"assessment",
 			},
 		})
 	})
@@ -73,6 +75,9 @@ func NewRouter(deps Dependencies) http.Handler {
 	v1.DELETE("/forum-posts/:id", RequireAuth(deps.Config.JWTSecret), forumHandler.ArchivePost)
 	v1.POST("/forum-posts/:id/comments", RequireAuth(deps.Config.JWTSecret), forumHandler.CreateComment)
 	v1.DELETE("/forum-comments/:id", RequireAuth(deps.Config.JWTSecret), forumHandler.ArchiveComment)
+	v1.GET("/assessment/questions", assessmentHandler.ListQuestions)
+	v1.POST("/assessment/submissions", RequireAuth(deps.Config.JWTSecret), assessmentHandler.CreateSubmission)
+	v1.GET("/assessment/submissions", RequireAuth(deps.Config.JWTSecret), assessmentHandler.ListSubmissions)
 	v1.GET("/appointments", RequireAuth(deps.Config.JWTSecret), appointmentHandler.ListMine)
 	v1.POST("/appointments", RequireAuth(deps.Config.JWTSecret), appointmentHandler.Create)
 	v1.PATCH("/appointments/:id/status", RequireAuth(deps.Config.JWTSecret), appointmentHandler.UpdateStatus)

@@ -1,6 +1,6 @@
 # Progress and Next Plan
 
-Date: 2026-07-09
+Date: 2026-07-13
 
 ## Current Goal
 
@@ -50,6 +50,8 @@ The old Java project and MySQL dump are kept locally as migration references, bu
   - `appointments`
   - `forum_posts`
   - `forum_comments`
+  - `assessment_questions`
+  - `assessment_submissions`
 - Seeded demo users:
   - `admin / 123456`
   - `student-demo / 123456`
@@ -83,6 +85,9 @@ Implemented:
 - `DELETE /api/v1/forum-posts/:id`
 - `POST /api/v1/forum-posts/:id/comments`
 - `DELETE /api/v1/forum-comments/:id`
+- `GET /api/v1/assessment/questions`
+- `POST /api/v1/assessment/submissions`
+- `GET /api/v1/assessment/submissions`
 - `GET /api/v1/appointments`
 - `POST /api/v1/appointments`
 - `PATCH /api/v1/appointments/:id/status`
@@ -98,6 +103,7 @@ Implemented backend concerns:
 - managed article categories with soft disable
 - authenticated local image uploads for avatars and article covers
 - forum posts and comments with author/admin soft archive
+- self-assessment questions, scoring, result interpretation, and submission history
 
 ### Frontend
 
@@ -118,6 +124,7 @@ Implemented:
 - article cover upload and display
 - article category select and category management panel for admin/counselor
 - forum post list, post detail, comment list, post creation, and comment creation
+- self-assessment question list, score selection, submission, and latest result display
 - live API integration against the Go service
 
 ### Validation
@@ -129,7 +136,7 @@ go test ./...
 npm run build:web
 ```
 
-Latest validation on 2026-07-09 covered backend tests and frontend production build after forum/comment support was added.
+Latest validation on 2026-07-13 covered backend tests and frontend production build after assessment support was added.
 
 Pending local environment action:
 
@@ -137,6 +144,7 @@ Pending local environment action:
 # Apply when PostgreSQL is running.
 psql "postgres://root:123456@localhost:5432/mental_health?sslmode=disable" -f database/migrations/000002_article_categories.up.sql
 psql "postgres://root:123456@localhost:5432/mental_health?sslmode=disable" -f database/migrations/000003_forum.up.sql
+psql "postgres://root:123456@localhost:5432/mental_health?sslmode=disable" -f database/migrations/000004_assessments.up.sql
 ```
 
 Manual API validation completed:
@@ -209,9 +217,7 @@ app/(admin)
 app/(auth)
 ```
 
-6. Split the current single-page frontend into route groups once the feature surface grows further.
-7. Add assessment/questionnaire module.
-8. Add AI features later:
+6. Add AI features later:
     - mental health Q&A
     - assessment interpretation
     - article summary

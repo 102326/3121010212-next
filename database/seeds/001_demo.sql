@@ -43,3 +43,12 @@ WHERE p.title = '最近如何缓解压力？'
   AND NOT EXISTS (
     SELECT 1 FROM forum_comments WHERE post_id = p.id AND content = '我一般会先把当天最焦虑的事情写下来，再决定明天处理哪一件。'
   );
+
+INSERT INTO assessment_questions (title, dimension, sort_order)
+VALUES
+  ('最近一周，我经常感到紧张或难以放松', '压力', 1),
+  ('最近一周，我的睡眠质量不太稳定', '睡眠', 2),
+  ('最近一周，我容易因为小事烦躁', '情绪', 3),
+  ('最近一周，我学习或工作的注意力下降', '专注', 4),
+  ('最近一周，我觉得需要有人支持或倾听', '支持', 5)
+ON CONFLICT DO NOTHING;
