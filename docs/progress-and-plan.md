@@ -129,6 +129,7 @@ Implemented:
 - live API integration against the Go service
 - split shared frontend workspace basics into `components/platform/*`:
   - shared API base configuration
+  - shared JSON request and image upload helpers
   - shared domain types and status labels
   - reusable app header
   - reusable dashboard summary cards

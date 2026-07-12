@@ -10,7 +10,7 @@ import {
   UserRoundCheck
 } from "lucide-react";
 
-import { API_BASE } from "@/components/platform/api";
+import { apiFetchJson, uploadImageFile } from "@/components/platform/api";
 import { AppHeader } from "@/components/platform/app-header";
 import { DashboardSummary } from "@/components/platform/dashboard-summary";
 import { MainContentPanels } from "@/components/platform/main-panels";
@@ -113,39 +113,14 @@ export default function Home() {
   }, [activeCounselor]);
 
   async function apiFetch<T>(path: string, init: RequestInit = {}, token = state.token): Promise<T> {
-    const headers = new Headers(init.headers);
-    headers.set("Content-Type", "application/json");
-    if (token) {
-      headers.set("Authorization", `Bearer ${token}`);
-    }
-
-    const response = await fetch(`${API_BASE}${path}`, { ...init, headers });
-    const data = (await response.json().catch(() => ({}))) as { error?: string };
-    if (!response.ok) {
-      throw new Error(data.error ?? `HTTP ${response.status}`);
-    }
-    return data as T;
+    return apiFetchJson<T>(path, init, token);
   }
 
   async function uploadImage(file: File) {
     if (!state.token) {
       throw new Error("请先登录");
     }
-    const form = new FormData();
-    form.append("file", file);
-
-    const response = await fetch(`${API_BASE}/uploads`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${state.token}`
-      },
-      body: form
-    });
-    const data = (await response.json().catch(() => ({}))) as { url?: string; error?: string };
-    if (!response.ok || !data.url) {
-      throw new Error(data.error ?? "上传失败");
-    }
-    return data.url;
+    return uploadImageFile(file, state.token);
   }
 
   async function loadCounselors() {
@@ -309,12 +284,7 @@ export default function Home() {
     if (!token) {
       return;
     }
-    const headers = new Headers({ Authorization: `Bearer ${token}` });
-    const response = await fetch(`${API_BASE}/appointments`, { headers });
-    const data = (await response.json().catch(() => ({}))) as { appointments?: Appointment[]; error?: string };
-    if (!response.ok) {
-      throw new Error(data.error ?? "加载预约失败");
-    }
+    const data = await apiFetchJson<{ appointments?: Appointment[] }>("/appointments", {}, token, "加载预约失败");
     setState((current) => ({
       ...current,
       appointments: data.appointments ?? []
