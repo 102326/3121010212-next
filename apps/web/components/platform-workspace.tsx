@@ -15,13 +15,12 @@ import { AppHeader } from "@/components/platform/app-header";
 import { DashboardSummary } from "@/components/platform/dashboard-summary";
 import { MainContentPanels } from "@/components/platform/main-panels";
 import { PlatformSidebar } from "@/components/platform/sidebar";
-import { statusText } from "@/components/platform/types";
+import { useAppointmentActions } from "@/components/platform/use-appointment-actions";
 import { useAssessmentActions } from "@/components/platform/use-assessment-actions";
 import { useArticleActions } from "@/components/platform/use-article-actions";
 import { useForumActions } from "@/components/platform/use-forum-actions";
 import type {
   ApiState,
-  Appointment,
   Counselor,
   DashboardMetric,
   User
@@ -45,8 +44,6 @@ export default function Home() {
   const [username, setUsername] = useState("student-demo");
   const [password, setPassword] = useState("123456");
   const [selectedCounselor, setSelectedCounselor] = useState("");
-  const [scheduledAt, setScheduledAt] = useState("2026-07-05T14:00");
-  const [content, setContent] = useState("最近睡眠不好，想预约咨询。");
   const [counselorName, setCounselorName] = useState("");
   const [counselorGender, setCounselorGender] = useState("");
   const [counselorSpecialty, setCounselorSpecialty] = useState("");
@@ -103,6 +100,16 @@ export default function Home() {
     apiFetch
   });
 
+  const appointmentActions = useAppointmentActions({
+    state,
+    setState,
+    canManageAppointments,
+    selectedCounselor,
+    setLoading,
+    setMessage,
+    apiFetch
+  });
+
   useEffect(() => {
     void loadCounselors();
     void articleActions.loadCategories();
@@ -154,17 +161,6 @@ export default function Home() {
     }
   }
 
-  async function loadAppointments(token = state.token) {
-    if (!token) {
-      return;
-    }
-    const data = await apiFetchJson<{ appointments?: Appointment[] }>("/appointments", {}, token, "加载预约失败");
-    setState((current) => ({
-      ...current,
-      appointments: data.appointments ?? []
-    }));
-  }
-
   async function login() {
     setLoading(true);
     setMessage("");
@@ -174,57 +170,11 @@ export default function Home() {
         body: JSON.stringify({ username, password })
       });
       setState((current) => ({ ...current, token: data.token, user: data.user }));
-      await loadAppointments(data.token);
+      await appointmentActions.loadAppointments(data.token);
       await assessmentActions.loadAssessmentSubmissions(data.token);
       setMessage(`已登录：${data.user.display_name}`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "登录失败");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function createAppointment() {
-    if (!state.token) {
-      setMessage("请先登录");
-      return;
-    }
-    setLoading(true);
-    setMessage("");
-    try {
-      await apiFetch("/appointments", {
-        method: "POST",
-        body: JSON.stringify({
-          counselor_id: selectedCounselor,
-          scheduled_at: new Date(scheduledAt).toISOString(),
-          content
-        })
-      });
-      await loadAppointments();
-      setMessage("预约已提交");
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "预约失败");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function updateAppointmentStatus(id: string, status: string) {
-    if (!state.token || !canManageAppointments) {
-      setMessage("需要管理员或咨询师账号");
-      return;
-    }
-    setLoading(true);
-    setMessage("");
-    try {
-      await apiFetch(`/appointments/${id}/status`, {
-        method: "PATCH",
-        body: JSON.stringify({ status })
-      });
-      await loadAppointments();
-      setMessage(`预约状态已更新为：${statusText[status] ?? status}`);
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "更新预约状态失败");
     } finally {
       setLoading(false);
     }
@@ -294,10 +244,10 @@ export default function Home() {
           setPassword={setPassword}
           selectedCounselor={selectedCounselor}
           setSelectedCounselor={setSelectedCounselor}
-          scheduledAt={scheduledAt}
-          setScheduledAt={setScheduledAt}
-          appointmentContent={content}
-          setAppointmentContent={setContent}
+          scheduledAt={appointmentActions.scheduledAt}
+          setScheduledAt={appointmentActions.setScheduledAt}
+          appointmentContent={appointmentActions.content}
+          setAppointmentContent={appointmentActions.setContent}
           counselorName={counselorName}
           setCounselorName={setCounselorName}
           counselorGender={counselorGender}
@@ -329,7 +279,7 @@ export default function Home() {
           articleCoverURL={articleActions.articleCoverURL}
           setArticleCoverURL={articleActions.setArticleCoverURL}
           onLogin={login}
-          onCreateAppointment={createAppointment}
+          onCreateAppointment={appointmentActions.createAppointment}
           onSaveCounselorProfile={saveCounselorProfile}
           onUploadCounselorAvatar={uploadCounselorAvatar}
           onSaveCategory={articleActions.saveCategory}
@@ -366,7 +316,7 @@ export default function Home() {
             assessmentAnswers={assessmentActions.assessmentAnswers}
             setAssessmentAnswers={assessmentActions.setAssessmentAnswers}
             onSelectCounselor={setSelectedCounselor}
-            onUpdateAppointmentStatus={updateAppointmentStatus}
+            onUpdateAppointmentStatus={appointmentActions.updateAppointmentStatus}
             onLoadArticle={articleActions.loadArticle}
             onCreateForumPost={forumActions.createForumPost}
             onLoadForumPost={forumActions.loadForumPost}
