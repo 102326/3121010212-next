@@ -127,6 +127,11 @@ Implemented:
 - self-assessment question list, score selection, submission, and latest result display
 - route-level frontend entry pages for dashboard, counselors, articles, forum, and assessment
 - live API integration against the Go service
+- split shared frontend workspace basics into `components/platform/*`:
+  - shared API base configuration
+  - shared domain types and status labels
+  - reusable app header
+  - reusable dashboard summary cards
 
 ### Validation
 
@@ -209,7 +214,10 @@ NEXT_PUBLIC_API_URL=http://127.0.0.1:8080/api/v1
 
 3. Add backend run scripts for Windows development.
 4. Add structured API packages or sqlc-generated query layer before the API grows much larger.
-5. Split the shared workbench component into smaller feature components.
+5. Continue splitting the shared workbench component into smaller feature components:
+    - account and appointment sidebar panels
+    - counselor and article management panels
+    - forum and assessment main content panels
 6. Add AI features later:
     - mental health Q&A
     - assessment interpretation

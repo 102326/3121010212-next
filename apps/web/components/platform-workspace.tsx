@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  Activity,
   ClipboardCheck,
   CalendarCheck,
   CheckCircle2,
@@ -13,121 +12,28 @@ import {
   MessageSquareText,
   Pencil,
   Plus,
-  RefreshCw,
   Send,
   Trash2,
   UserRoundCheck
 } from "lucide-react";
 
+import { API_BASE } from "@/components/platform/api";
+import { AppHeader } from "@/components/platform/app-header";
+import { DashboardSummary } from "@/components/platform/dashboard-summary";
+import { statusText } from "@/components/platform/types";
+import type {
+  ApiState,
+  Appointment,
+  Article,
+  ArticleCategory,
+  AssessmentQuestion,
+  AssessmentSubmission,
+  Counselor,
+  DashboardMetric,
+  ForumPost,
+  User
+} from "@/components/platform/types";
 import { Button } from "@/components/ui/button";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8080/api/v1";
-
-type User = {
-  id: string;
-  username: string;
-  role: string;
-  display_name: string;
-  phone?: string;
-};
-
-type Counselor = {
-  id: string;
-  name: string;
-  gender?: string;
-  avatar_url?: string;
-  specialty: string;
-  available_time?: string;
-  phone?: string;
-  bio?: string;
-  rating: string;
-};
-
-type Appointment = {
-  id: string;
-  student_name: string;
-  counselor_name: string;
-  scheduled_at: string;
-  content: string;
-  status: string;
-  created_at: string;
-};
-
-type Article = {
-  id: string;
-  category?: string;
-  author?: string;
-  title: string;
-  summary?: string;
-  content?: string;
-  cover_url?: string;
-  view_count: number;
-  published_at?: string;
-};
-
-type ArticleCategory = {
-  id: string;
-  name: string;
-  is_active: boolean;
-};
-
-type ForumComment = {
-  id: string;
-  post_id: string;
-  author_id?: string;
-  author?: string;
-  content: string;
-  created_at: string;
-};
-
-type ForumPost = {
-  id: string;
-  author_id?: string;
-  author?: string;
-  title: string;
-  content?: string;
-  comment_count: number;
-  created_at: string;
-  comments?: ForumComment[];
-};
-
-type AssessmentQuestion = {
-  id: string;
-  title: string;
-  dimension: string;
-  sort_order: number;
-};
-
-type AssessmentSubmission = {
-  id: string;
-  answers: { question_id: string; score: number }[];
-  total_score: number;
-  level: string;
-  suggestion: string;
-  created_at: string;
-};
-
-type ApiState = {
-  token: string;
-  user: User | null;
-  counselors: Counselor[];
-  appointments: Appointment[];
-  articles: Article[];
-  categories: ArticleCategory[];
-  forumPosts: ForumPost[];
-  assessmentQuestions: AssessmentQuestion[];
-  assessmentSubmissions: AssessmentSubmission[];
-  latestAssessment: AssessmentSubmission | null;
-  selectedForumPost: ForumPost | null;
-  selectedArticle: Article | null;
-};
-
-const statusText: Record<string, string> = {
-  pending: "待确认",
-  approved: "已确认",
-  cancelled: "已取消",
-  completed: "已完成"
-};
 
 export default function Home() {
   const [state, setState] = useState<ApiState>({
@@ -179,7 +85,7 @@ export default function Home() {
     [selectedCounselor, state.counselors]
   );
 
-  const stats = useMemo(
+  const stats = useMemo<DashboardMetric[]>(
     () => [
       { name: "咨询师", value: String(state.counselors.length), icon: UserRoundCheck },
       { name: "我的预约", value: String(state.appointments.length), icon: CalendarCheck },
@@ -774,22 +680,7 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-background">
-      <section className="border-b border-border bg-white">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-3">
-            <div className="flex size-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
-              <Activity className="size-5" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">3121010212-next</p>
-              <h1 className="text-lg font-semibold">心理健康服务平台</h1>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            {state.user ? state.user.display_name : "未登录"}
-          </div>
-        </div>
-      </section>
+      <AppHeader currentUserName={state.user?.display_name ?? null} />
 
       <section className="mx-auto grid max-w-6xl gap-6 px-6 py-8 lg:grid-cols-[360px_1fr]">
         <aside className="space-y-4">
@@ -1136,38 +1027,18 @@ export default function Home() {
         </aside>
 
         <div className="space-y-4">
-          <div className="rounded-lg border border-border bg-white p-5 shadow-sm">
-            <div className="mb-5 flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-medium text-primary">Go API + PostgreSQL</p>
-                <h2 className="mt-1 text-2xl font-semibold">核心预约闭环</h2>
-              </div>
-              <Button
-                className="gap-2"
-                variant="outline"
-                disabled={loading}
-                onClick={() => {
-                  void loadCounselors();
-                  void loadCategories();
-                  void loadArticles();
-                  void loadForumPosts();
-                }}
-              >
-                <RefreshCw className="size-4" />
-                刷新
-              </Button>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-5">
-              {stats.map((item) => (
-                <div key={item.name} className="rounded-md border border-border p-4">
-                  <item.icon className="mb-4 size-5 text-primary" />
-                  <p className="text-2xl font-semibold">{item.value}</p>
-                  <p className="text-sm text-muted-foreground">{item.name}</p>
-                </div>
-              ))}
-            </div>
-            {message ? <p className="mt-4 rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">{message}</p> : null}
-          </div>
+          <DashboardSummary
+            loading={loading}
+            message={message}
+            stats={stats}
+            onRefresh={() => {
+              void loadCounselors();
+              void loadCategories();
+              void loadArticles();
+              void loadForumPosts();
+              void loadAssessmentQuestions();
+            }}
+          />
 
           <section className="grid gap-4 xl:grid-cols-3">
             <div className="rounded-lg border border-border bg-white p-5 shadow-sm">
