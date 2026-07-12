@@ -6,12 +6,8 @@ import {
   CalendarCheck,
   CheckCircle2,
   Clock3,
-  ImagePlus,
   LibraryBig,
-  LogIn,
   MessageSquareText,
-  Pencil,
-  Plus,
   Send,
   Trash2,
   UserRoundCheck
@@ -20,6 +16,7 @@ import {
 import { API_BASE } from "@/components/platform/api";
 import { AppHeader } from "@/components/platform/app-header";
 import { DashboardSummary } from "@/components/platform/dashboard-summary";
+import { PlatformSidebar } from "@/components/platform/sidebar";
 import { statusText } from "@/components/platform/types";
 import type {
   ApiState,
@@ -683,348 +680,62 @@ export default function Home() {
       <AppHeader currentUserName={state.user?.display_name ?? null} />
 
       <section className="mx-auto grid max-w-6xl gap-6 px-6 py-8 lg:grid-cols-[360px_1fr]">
-        <aside className="space-y-4">
-          <div className="rounded-lg border border-border bg-white p-4 shadow-sm">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="font-semibold">账号</h2>
-              <LogIn className="size-4 text-primary" />
-            </div>
-            <div className="space-y-3">
-              <label className="block text-sm">
-                <span className="mb-1 block text-muted-foreground">用户名</span>
-                <input
-                  className="h-10 w-full rounded-md border border-border px-3 outline-none focus:ring-2 focus:ring-primary"
-                  value={username}
-                  onChange={(event) => setUsername(event.target.value)}
-                />
-              </label>
-              <label className="block text-sm">
-                <span className="mb-1 block text-muted-foreground">密码</span>
-                <input
-                  className="h-10 w-full rounded-md border border-border px-3 outline-none focus:ring-2 focus:ring-primary"
-                  type="password"
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                />
-              </label>
-              <Button className="w-full gap-2" disabled={loading} onClick={login}>
-                <LogIn className="size-4" />
-                登录
-              </Button>
-            </div>
-          </div>
-
-          <div className="rounded-lg border border-border bg-white p-4 shadow-sm">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="font-semibold">预约</h2>
-              <Send className="size-4 text-primary" />
-            </div>
-            <div className="space-y-3">
-              <label className="block text-sm">
-                <span className="mb-1 block text-muted-foreground">咨询师</span>
-                <select
-                  className="h-10 w-full rounded-md border border-border px-3 outline-none focus:ring-2 focus:ring-primary"
-                  value={selectedCounselor}
-                  onChange={(event) => setSelectedCounselor(event.target.value)}
-                >
-                  {state.counselors.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="block text-sm">
-                <span className="mb-1 block text-muted-foreground">时间</span>
-                <input
-                  className="h-10 w-full rounded-md border border-border px-3 outline-none focus:ring-2 focus:ring-primary"
-                  type="datetime-local"
-                  value={scheduledAt}
-                  onChange={(event) => setScheduledAt(event.target.value)}
-                />
-              </label>
-              <label className="block text-sm">
-                <span className="mb-1 block text-muted-foreground">内容</span>
-                <textarea
-                  className="min-h-24 w-full rounded-md border border-border px-3 py-2 outline-none focus:ring-2 focus:ring-primary"
-                  value={content}
-                  onChange={(event) => setContent(event.target.value)}
-                />
-              </label>
-              <Button className="w-full gap-2" disabled={loading || !selectedCounselor} onClick={createAppointment}>
-                <CalendarCheck className="size-4" />
-                提交预约
-              </Button>
-            </div>
-          </div>
-
-          {canManageCounselors ? (
-            <div className="rounded-lg border border-border bg-white p-4 shadow-sm">
-              <div className="mb-4 flex items-center justify-between">
-                <h2 className="font-semibold">咨询师资料</h2>
-                <UserRoundCheck className="size-4 text-primary" />
-              </div>
-              <div className="space-y-3">
-                <label className="block text-sm">
-                  <span className="mb-1 block text-muted-foreground">当前咨询师</span>
-                  <select
-                    className="h-10 w-full rounded-md border border-border px-3 outline-none focus:ring-2 focus:ring-primary"
-                    value={selectedCounselor}
-                    onChange={(event) => setSelectedCounselor(event.target.value)}
-                  >
-                    {state.counselors.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="block text-sm">
-                  <span className="mb-1 block text-muted-foreground">姓名</span>
-                  <input
-                    className="h-10 w-full rounded-md border border-border px-3 outline-none focus:ring-2 focus:ring-primary"
-                    value={counselorName}
-                    onChange={(event) => setCounselorName(event.target.value)}
-                  />
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  <label className="block text-sm">
-                    <span className="mb-1 block text-muted-foreground">性别</span>
-                    <input
-                      className="h-10 w-full rounded-md border border-border px-3 outline-none focus:ring-2 focus:ring-primary"
-                      value={counselorGender}
-                      onChange={(event) => setCounselorGender(event.target.value)}
-                    />
-                  </label>
-                  <label className="block text-sm">
-                    <span className="mb-1 block text-muted-foreground">电话</span>
-                    <input
-                      className="h-10 w-full rounded-md border border-border px-3 outline-none focus:ring-2 focus:ring-primary"
-                      value={counselorPhone}
-                      onChange={(event) => setCounselorPhone(event.target.value)}
-                    />
-                  </label>
-                </div>
-                <label className="block text-sm">
-                  <span className="mb-1 block text-muted-foreground">专长</span>
-                  <input
-                    className="h-10 w-full rounded-md border border-border px-3 outline-none focus:ring-2 focus:ring-primary"
-                    value={counselorSpecialty}
-                    onChange={(event) => setCounselorSpecialty(event.target.value)}
-                  />
-                </label>
-                <label className="block text-sm">
-                  <span className="mb-1 block text-muted-foreground">可预约时间</span>
-                  <input
-                    className="h-10 w-full rounded-md border border-border px-3 outline-none focus:ring-2 focus:ring-primary"
-                    value={counselorAvailableTime}
-                    onChange={(event) => setCounselorAvailableTime(event.target.value)}
-                  />
-                </label>
-                <label className="block text-sm">
-                  <span className="mb-1 block text-muted-foreground">头像 URL</span>
-                  <input
-                    className="h-10 w-full rounded-md border border-border px-3 outline-none focus:ring-2 focus:ring-primary"
-                    value={counselorAvatarURL}
-                    onChange={(event) => setCounselorAvatarURL(event.target.value)}
-                  />
-                </label>
-                <label className="flex h-10 cursor-pointer items-center justify-center gap-2 rounded-md border border-border text-sm transition-colors hover:bg-muted">
-                  <ImagePlus className="size-4 text-primary" />
-                  上传头像
-                  <input
-                    className="hidden"
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp,image/gif"
-                    onChange={(event) => void uploadCounselorAvatar(event.target.files?.[0] ?? null)}
-                  />
-                </label>
-                <label className="block text-sm">
-                  <span className="mb-1 block text-muted-foreground">简介</span>
-                  <textarea
-                    className="min-h-24 w-full rounded-md border border-border px-3 py-2 outline-none focus:ring-2 focus:ring-primary"
-                    value={counselorBio}
-                    onChange={(event) => setCounselorBio(event.target.value)}
-                  />
-                </label>
-                <Button
-                  className="w-full gap-2"
-                  disabled={loading || !selectedCounselor || !counselorName.trim() || !counselorSpecialty.trim()}
-                  onClick={saveCounselorProfile}
-                >
-                  <Send className="size-4" />
-                  保存资料
-                </Button>
-              </div>
-            </div>
-          ) : null}
-
-          {canEditArticles ? (
-            <div className="rounded-lg border border-border bg-white p-4 shadow-sm">
-              <div className="mb-4 flex items-center justify-between">
-                <h2 className="font-semibold">分类管理</h2>
-                <Plus className="size-4 text-primary" />
-              </div>
-              <div className="space-y-3">
-                <label className="block text-sm">
-                  <span className="mb-1 block text-muted-foreground">分类名称</span>
-                  <input
-                    className="h-10 w-full rounded-md border border-border px-3 outline-none focus:ring-2 focus:ring-primary"
-                    value={categoryName}
-                    onChange={(event) => setCategoryName(event.target.value)}
-                  />
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  <Button className="gap-2" disabled={loading || !categoryName.trim()} onClick={saveCategory}>
-                    <Plus className="size-4" />
-                    {editingCategoryId ? "保存分类" : "新增分类"}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    disabled={loading}
-                    onClick={() => {
-                      setEditingCategoryId("");
-                      setCategoryName("");
-                    }}
-                  >
-                    清空
-                  </Button>
-                </div>
-                <div className="space-y-2">
-                  {state.categories.length === 0 ? (
-                    <p className="rounded-md border border-dashed border-border p-3 text-sm text-muted-foreground">暂无分类</p>
-                  ) : (
-                    state.categories.map((item) => (
-                      <div key={item.id} className="flex items-center justify-between gap-2 rounded-md border border-border px-3 py-2">
-                        <button
-                          className="min-w-0 flex-1 truncate text-left text-sm"
-                          onClick={() => {
-                            setEditingCategoryId(item.id);
-                            setCategoryName(item.name);
-                          }}
-                        >
-                          {item.name}
-                        </button>
-                        <Button
-                          className="size-8 p-0"
-                          variant="ghost"
-                          disabled={loading}
-                          onClick={() => {
-                            setEditingCategoryId(item.id);
-                            setCategoryName(item.name);
-                          }}
-                          aria-label={`编辑分类 ${item.name}`}
-                        >
-                          <Pencil className="size-4" />
-                        </Button>
-                        <Button
-                          className="size-8 p-0"
-                          variant="ghost"
-                          disabled={loading}
-                          onClick={() => void disableCategory(item.id, item.name)}
-                          aria-label={`停用分类 ${item.name}`}
-                        >
-                          <Trash2 className="size-4" />
-                        </Button>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            </div>
-          ) : null}
-
-          {canEditArticles ? (
-            <div className="rounded-lg border border-border bg-white p-4 shadow-sm">
-              <div className="mb-4 flex items-center justify-between">
-                <h2 className="font-semibold">文章编辑</h2>
-                <LibraryBig className="size-4 text-primary" />
-              </div>
-              <div className="space-y-3">
-                <label className="block text-sm">
-                  <span className="mb-1 block text-muted-foreground">分类</span>
-                  <select
-                    className="h-10 w-full rounded-md border border-border px-3 outline-none focus:ring-2 focus:ring-primary"
-                    value={articleCategory}
-                    onChange={(event) => setArticleCategory(event.target.value)}
-                  >
-                    {state.categories.length === 0 ? <option value="">暂无分类</option> : null}
-                    {state.categories.map((item) => (
-                      <option key={item.id} value={item.name}>
-                        {item.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="block text-sm">
-                  <span className="mb-1 block text-muted-foreground">标题</span>
-                  <input
-                    className="h-10 w-full rounded-md border border-border px-3 outline-none focus:ring-2 focus:ring-primary"
-                    value={articleTitle}
-                    onChange={(event) => setArticleTitle(event.target.value)}
-                  />
-                </label>
-                <label className="block text-sm">
-                  <span className="mb-1 block text-muted-foreground">摘要</span>
-                  <textarea
-                    className="min-h-20 w-full rounded-md border border-border px-3 py-2 outline-none focus:ring-2 focus:ring-primary"
-                    value={articleSummary}
-                    onChange={(event) => setArticleSummary(event.target.value)}
-                  />
-                </label>
-                <label className="block text-sm">
-                  <span className="mb-1 block text-muted-foreground">正文</span>
-                  <textarea
-                    className="min-h-28 w-full rounded-md border border-border px-3 py-2 outline-none focus:ring-2 focus:ring-primary"
-                    value={articleContent}
-                    onChange={(event) => setArticleContent(event.target.value)}
-                  />
-                </label>
-                <label className="block text-sm">
-                  <span className="mb-1 block text-muted-foreground">封面 URL</span>
-                  <input
-                    className="h-10 w-full rounded-md border border-border px-3 outline-none focus:ring-2 focus:ring-primary"
-                    value={articleCoverURL}
-                    onChange={(event) => setArticleCoverURL(event.target.value)}
-                  />
-                </label>
-                <label className="flex h-10 cursor-pointer items-center justify-center gap-2 rounded-md border border-border text-sm transition-colors hover:bg-muted">
-                  <ImagePlus className="size-4 text-primary" />
-                  上传封面
-                  <input
-                    className="hidden"
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp,image/gif"
-                    onChange={(event) => void uploadArticleCover(event.target.files?.[0] ?? null)}
-                  />
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  <Button className="gap-2" disabled={loading || !articleTitle || !articleContent} onClick={saveArticle}>
-                    <Send className="size-4" />
-                    保存
-                  </Button>
-                  <Button variant="outline" disabled={loading || !editingArticleId} onClick={archiveArticle}>
-                    归档
-                  </Button>
-                </div>
-                <Button
-                  className="w-full"
-                  variant="ghost"
-                  onClick={() => {
-                    setEditingArticleId("");
-                    setArticleCategory(state.categories[0]?.name ?? "");
-                    setArticleTitle("");
-                    setArticleSummary("");
-                    setArticleContent("");
-                    setArticleCoverURL("");
-                  }}
-                >
-                  新建文章
-                </Button>
-              </div>
-            </div>
-          ) : null}
-        </aside>
+        <PlatformSidebar
+          loading={loading}
+          canManageCounselors={canManageCounselors}
+          canEditArticles={canEditArticles}
+          counselors={state.counselors}
+          categories={state.categories}
+          username={username}
+          setUsername={setUsername}
+          password={password}
+          setPassword={setPassword}
+          selectedCounselor={selectedCounselor}
+          setSelectedCounselor={setSelectedCounselor}
+          scheduledAt={scheduledAt}
+          setScheduledAt={setScheduledAt}
+          appointmentContent={content}
+          setAppointmentContent={setContent}
+          counselorName={counselorName}
+          setCounselorName={setCounselorName}
+          counselorGender={counselorGender}
+          setCounselorGender={setCounselorGender}
+          counselorSpecialty={counselorSpecialty}
+          setCounselorSpecialty={setCounselorSpecialty}
+          counselorAvailableTime={counselorAvailableTime}
+          setCounselorAvailableTime={setCounselorAvailableTime}
+          counselorPhone={counselorPhone}
+          setCounselorPhone={setCounselorPhone}
+          counselorBio={counselorBio}
+          setCounselorBio={setCounselorBio}
+          counselorAvatarURL={counselorAvatarURL}
+          setCounselorAvatarURL={setCounselorAvatarURL}
+          categoryName={categoryName}
+          setCategoryName={setCategoryName}
+          editingCategoryId={editingCategoryId}
+          setEditingCategoryId={setEditingCategoryId}
+          articleCategory={articleCategory}
+          setArticleCategory={setArticleCategory}
+          editingArticleId={editingArticleId}
+          setEditingArticleId={setEditingArticleId}
+          articleTitle={articleTitle}
+          setArticleTitle={setArticleTitle}
+          articleSummary={articleSummary}
+          setArticleSummary={setArticleSummary}
+          articleContent={articleContent}
+          setArticleContent={setArticleContent}
+          articleCoverURL={articleCoverURL}
+          setArticleCoverURL={setArticleCoverURL}
+          onLogin={login}
+          onCreateAppointment={createAppointment}
+          onSaveCounselorProfile={saveCounselorProfile}
+          onUploadCounselorAvatar={uploadCounselorAvatar}
+          onSaveCategory={saveCategory}
+          onDisableCategory={disableCategory}
+          onSaveArticle={saveArticle}
+          onArchiveArticle={archiveArticle}
+          onUploadArticleCover={uploadArticleCover}
+        />
 
         <div className="space-y-4">
           <DashboardSummary
